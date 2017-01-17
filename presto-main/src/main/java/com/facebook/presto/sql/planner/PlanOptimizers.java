@@ -101,9 +101,6 @@ public class PlanOptimizers
                         new com.facebook.presto.sql.planner.iterative.rule.ImplementFilteredAggregations(),
                         new SingleMarkDistinctToGroupBy()
                 )),
-                new IterativeOptimizer(ImmutableSet.of(
-                        new com.facebook.presto.sql.planner.iterative.rule.ImplementFilteredAggregations()
-                )),
                 new ImplementFilteredAggregations(),
                 new ImplementSampleAsFilter(),
                 new SimplifyExpressions(metadata, sqlParser),
