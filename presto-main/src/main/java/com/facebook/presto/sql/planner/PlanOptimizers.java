@@ -123,7 +123,10 @@ public class PlanOptimizers
                 new ProjectionPushDown(),
                 new UnaliasSymbolReferences(), // Run again because predicate pushdown and projection pushdown might add more projections
                 new PruneUnreferencedOutputs(), // Make sure to run this before index join. Filtered projections may not have all the columns.
-                new IndexJoinOptimizer(metadata), // Run this after projections and filters have been fully simplified and pushed down
+                new IndexJoinOptimizer(metadata)); // Run this after projections and filters have been fully simplified and pushed down
+                new IterativeOptimizer(ImmutableSet.of(
+                        new SimplifyCountOverConstant()
+                )),
                 new CountConstantOptimizer(),
                 new WindowFilterPushDown(metadata), // This must run after PredicatePushDown and LimitPushDown so that it squashes any successive filter nodes and limits
                 new MergeWindows(),
