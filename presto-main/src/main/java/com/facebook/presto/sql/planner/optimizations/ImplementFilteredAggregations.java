@@ -14,6 +14,7 @@
 package com.facebook.presto.sql.planner.optimizations;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.SystemSessionProperties;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
@@ -63,6 +64,9 @@ public class ImplementFilteredAggregations
     @Override
     public PlanNode optimize(PlanNode plan, Session session, Map<Symbol, Type> types, SymbolAllocator symbolAllocator, PlanNodeIdAllocator idAllocator)
     {
+        if (!SystemSessionProperties.isNewOptimizerEnabled(session)) {
+            return plan;
+        }
         return SimplePlanRewriter.rewriteWith(new Optimizer(idAllocator, symbolAllocator), plan, Optional.empty());
     }
 
