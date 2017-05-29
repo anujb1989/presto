@@ -35,10 +35,13 @@ import javax.annotation.concurrent.GuardedBy;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
@@ -48,6 +51,8 @@ import static com.facebook.presto.operator.Operator.NOT_BLOCKED;
 import static com.facebook.presto.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static io.airlift.concurrent.MoreFutures.getFutureValue;
 import static java.lang.Boolean.TRUE;
 import static java.util.Objects.requireNonNull;
 
@@ -67,6 +72,7 @@ public class Driver
     private final Optional<SourceOperator> sourceOperator;
     private final Optional<DeleteOperator> deleteOperator;
     private final AtomicReference<TaskSource> newTaskSource = new AtomicReference<>();
+    private final Map<Operator, ListenableFuture<?>> revokingOperators = new HashMap<>();
 
     private final AtomicReference<State> state = new AtomicReference<>(State.ALIVE);
 
@@ -233,7 +239,7 @@ public class Driver
                 do {
                     ListenableFuture<?> future = processInternal();
                     if (!future.isDone()) {
-                        return future;
+                        return wakeUpOnRevokeRequest(future);
                     }
                 }
                 while (System.nanoTime() - start < maxRuntime && !isFinishedInternal());
@@ -250,14 +256,45 @@ public class Driver
     {
         checkLockNotHeld("Can not process while holding the driver lock");
 
-        Optional<ListenableFuture<?>> result = tryWithLock(100, TimeUnit.MILLISECONDS, this::processInternal);
+        Optional<ListenableFuture<?>> result = tryWithLock(100, TimeUnit.MILLISECONDS, () -> {
+            ListenableFuture<?> driverBlockedFuture = processInternal();
+            return wakeUpOnRevokeRequest(driverBlockedFuture);
+        });
         return result.orElse(NOT_BLOCKED);
+    }
+
+    private ListenableFuture<?> wakeUpOnRevokeRequest(ListenableFuture<?> driverBlockedFuture)
+    {
+        if (driverBlockedFuture.isDone()) {
+            // driver is not blocked; just return completed future
+            return driverBlockedFuture;
+        }
+        else {
+            ImmutableList<SettableFuture<?>> revokingRequestedFutures = operators.stream()
+                    .map(Operator::getOperatorContext)
+                    .map(OperatorContext::getMemoryRevokingRequestedFuture)
+                    .collect(toImmutableList());
+            Optional<SettableFuture<?>> doneRevokingRequestedFuture = revokingRequestedFutures.stream().filter(Future::isDone).findAny();
+            if (doneRevokingRequestedFuture.isPresent()) {
+                // revoking already requested for one of operators; return completed future
+                return doneRevokingRequestedFuture.get();
+            }
+            else {
+                // unblock as soon as driver is unblocked or we get revoking request for any of operators
+                ImmutableList.Builder<ListenableFuture<?>> futures = ImmutableList.builder();
+                futures.add(driverBlockedFuture);
+                futures.addAll(revokingRequestedFutures);
+                return firstFinishedFuture(futures.build());
+            }
+        }
     }
 
     @GuardedBy("exclusiveLock")
     private ListenableFuture<?> processInternal()
     {
         checkLockHeld("Lock must be held to call processInternal");
+
+        handleMemoryRevoke();
 
         try {
             processNewSources();
@@ -372,6 +409,35 @@ public class Driver
     }
 
     @GuardedBy("exclusiveLock")
+    private void handleMemoryRevoke()
+    {
+        for (int i = 0; i < operators.size() && !driverContext.isDone(); i++) {
+            Operator operator = operators.get(i);
+
+            if (revokingOperators.containsKey(operator)) {
+                checkOperatorFinishedRevoking(operator);
+            }
+            else if (operator.getOperatorContext().isMemoryRevokingRequested()) {
+                ListenableFuture<?> future = operator.startMemoryRevoke();
+                revokingOperators.put(operator, future);
+                checkOperatorFinishedRevoking(operator);
+            }
+        }
+    }
+
+    @GuardedBy("exclusiveLock")
+    private void checkOperatorFinishedRevoking(Operator operator)
+    {
+        ListenableFuture<?> future = revokingOperators.get(operator);
+        if (future.isDone()) {
+            getFutureValue(future); // propagate exception if there was some
+            revokingOperators.remove(operator);
+            operator.finishMemoryRevoke();
+            operator.getOperatorContext().resetMemoryRevokingRequested();
+        }
+    }
+
+    @GuardedBy("exclusiveLock")
     private void destroyIfNecessary()
     {
         checkLockHeld("Lock must be held to call destroyIfNecessary");
@@ -458,19 +524,27 @@ public class Driver
         }
     }
 
-    private static ListenableFuture<?> getBlockedFuture(Operator operator)
+    private ListenableFuture<?> getBlockedFuture(Operator operator)
     {
+        if (revokingOperators.containsKey(operator)) {
+            return revokingOperators.get(operator);
+        }
         ListenableFuture<?> blocked = operator.isBlocked();
         if (blocked.isDone()) {
             blocked = operator.getOperatorContext().isWaitingForMemory();
         }
+        if (blocked.isDone()) {
+            blocked = operator.getOperatorContext().isWaitingForRevocableMemory();
+        }
         return blocked;
     }
 
-    private static boolean isBlocked(Operator operator)
+    private boolean isBlocked(Operator operator)
     {
-        return !operator.isBlocked().isDone()
-                || !operator.getOperatorContext().isWaitingForMemory().isDone();
+        return revokingOperators.containsKey(operator) // Even if future in map is already done we do not want to resume input/output processing until finishMemoryRevoke
+                || !operator.isBlocked().isDone()
+                || !operator.getOperatorContext().isWaitingForMemory().isDone()
+                || !operator.getOperatorContext().isWaitingForRevocableMemory().isDone();
     }
 
     private static Throwable addSuppressedException(Throwable inFlightException, Throwable newException, String message, Object... args)
