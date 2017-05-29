@@ -270,8 +270,8 @@ public class Driver
 
                 // check if operator is blocked
                 Operator current = operators.get(0);
-                ListenableFuture<?> blocked = isBlocked(current);
-                if (!blocked.isDone()) {
+                if (isBlocked(current)) {
+                    ListenableFuture<?> blocked = getBlockedFuture(current);
                     current.getOperatorContext().recordBlocked(blocked);
                     return blocked;
                 }
@@ -289,10 +289,10 @@ public class Driver
                 Operator next = operators.get(i + 1);
 
                 // skip blocked operators
-                if (!isBlocked(current).isDone()) {
+                if (isBlocked(current)) {
                     continue;
                 }
-                if (!isBlocked(next).isDone()) {
+                if (isBlocked(next)) {
                     continue;
                 }
 
@@ -330,7 +330,7 @@ public class Driver
                 List<Operator> blockedOperators = new ArrayList<>();
                 List<ListenableFuture<?>> blockedFutures = new ArrayList<>();
                 for (Operator operator : operators) {
-                    ListenableFuture<?> blocked = isBlocked(operator);
+                    ListenableFuture<?> blocked = getBlockedFuture(operator);
                     if (!blocked.isDone()) {
                         blockedOperators.add(operator);
                         blockedFutures.add(blocked);
@@ -458,13 +458,19 @@ public class Driver
         }
     }
 
-    private static ListenableFuture<?> isBlocked(Operator operator)
+    private static ListenableFuture<?> getBlockedFuture(Operator operator)
     {
         ListenableFuture<?> blocked = operator.isBlocked();
         if (blocked.isDone()) {
             blocked = operator.getOperatorContext().isWaitingForMemory();
         }
         return blocked;
+    }
+
+    private static boolean isBlocked(Operator operator)
+    {
+        return !operator.isBlocked().isDone()
+                || !operator.getOperatorContext().isWaitingForMemory().isDone();
     }
 
     private static Throwable addSuppressedException(Throwable inFlightException, Throwable newException, String message, Object... args)
