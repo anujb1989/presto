@@ -52,6 +52,14 @@ public final class OperatorAssertion
 
     public static List<Page> toPages(Operator operator, Iterator<Page> input)
     {
+        return ImmutableList.<Page>builder()
+                .addAll(toPagesPartial(operator, input))
+                .addAll(finishOperator(operator))
+                .build();
+    }
+
+    public static List<Page> toPagesPartial(Operator operator, Iterator<Page> input)
+    {
         // verify initial state
         assertEquals(operator.isFinished(), false);
 
@@ -60,10 +68,8 @@ public final class OperatorAssertion
         }
 
         ImmutableList.Builder<Page> outputPages = ImmutableList.builder();
-        for (int loops = 0; !operator.isFinished() && loops < 10_000; loops++) {
-            ListenableFuture<?> isBlocked = operator.isBlocked();
-            if (!isBlocked.isDone()) {
-                tryGetFutureValue(isBlocked, 1, TimeUnit.MILLISECONDS);
+        for (int loopsSinceLastPage = 0; loopsSinceLastPage < 1_000; loopsSinceLastPage++) {
+            if (handledBlocked(operator)) {
                 continue;
             }
 
@@ -72,27 +78,60 @@ public final class OperatorAssertion
                     operator.addInput(input.next());
                 }
             }
-            else {
-                operator.finish();
-            }
 
-            if (!operator.getOperatorContext().isWaitingForRevocableMemory().isDone()) {
-                getFutureValue(operator.startMemoryRevoke());
-                operator.finishMemoryRevoke();
-            }
+            handleMemoryRevoking(operator);
 
             Page outputPage = operator.getOutput();
-            if (outputPage != null) {
+            if (outputPage != null && outputPage.getPositionCount() != 0) {
                 outputPages.add(outputPage);
+                loopsSinceLastPage = 0;
             }
         }
 
         assertEquals(input.hasNext(), false, "Input not fully consumed");
+
+        return outputPages.build();
+    }
+
+    public static List<Page> finishOperator(Operator operator)
+    {
+        ImmutableList.Builder<Page> outputPages = ImmutableList.builder();
+
+        for (int loopsSinceLastPage = 0; !operator.isFinished() && loopsSinceLastPage < 1_000; loopsSinceLastPage++) {
+            if (handledBlocked(operator)) {
+                continue;
+            }
+            operator.finish();
+            Page outputPage = operator.getOutput();
+            if (outputPage != null && outputPage.getPositionCount() != 0) {
+                outputPages.add(outputPage);
+                loopsSinceLastPage = 0;
+            }
+        }
+
         assertEquals(operator.isFinished(), true, "Operator did not finish");
         assertEquals(operator.needsInput(), false, "Operator still wants input");
         assertEquals(operator.isBlocked().isDone(), true, "Operator is blocked");
 
         return outputPages.build();
+    }
+
+    private static boolean handledBlocked(Operator operator)
+    {
+        ListenableFuture<?> isBlocked = operator.isBlocked();
+        if (!isBlocked.isDone()) {
+            tryGetFutureValue(isBlocked, 1, TimeUnit.MILLISECONDS);
+            return true;
+        }
+        return false;
+    }
+
+    private static void handleMemoryRevoking(Operator operator)
+    {
+        if (!operator.getOperatorContext().isWaitingForRevocableMemory().isDone()) {
+            getFutureValue(operator.startMemoryRevoke());
+            operator.finishMemoryRevoke();
+        }
     }
 
     public static List<Page> toPages(OperatorFactory operatorFactory, DriverContext driverContext, List<Page> input)
