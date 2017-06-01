@@ -68,6 +68,8 @@ public class FileSingleStreamSpiller
     private boolean writable = true;
     private ListenableFuture<?> spillInProgress = Futures.immediateFuture(null);
 
+    private boolean read; // TODO temporary
+
     public FileSingleStreamSpiller(
             PagesSerde serde,
             ListeningExecutorService executor,
@@ -135,9 +137,22 @@ public class FileSingleStreamSpiller
 
     private Iterator<Page> readPages()
     {
+        if (read) {
+            throw new RuntimeException("get lost");
+        }
+        read = true;
+
         writable = false;
         try {
-            InputStream input = new FileInputStream(targetFileName.toFile());
+            InputStream input = null;
+            try {
+                input = new FileInputStream(targetFileName.toFile());
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+                System.out.println();
+                throw e;
+            }
             memoryContext.setBytes(BUFFER_SIZE);
             closer.register(input);
             closer.register(() -> memoryContext.setBytes(0));
