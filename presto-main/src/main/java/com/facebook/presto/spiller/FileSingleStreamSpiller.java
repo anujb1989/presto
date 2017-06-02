@@ -69,7 +69,6 @@ public class FileSingleStreamSpiller
     private boolean read;
     private ListenableFuture<?> spillInProgress = Futures.immediateFuture(null);
 
-
     public FileSingleStreamSpiller(
             PagesSerde serde,
             ListeningExecutorService executor,
