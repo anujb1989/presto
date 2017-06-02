@@ -63,7 +63,6 @@ public class LookupJoinOperator
     private final HashGenerator hashGenerator;
     private final LookupSourceFactory lookupSourceFactory;
     private final PartitioningSpillerFactory partitioningSpillerFactory;
-    private final LocalPartitionGenerator partitionGenerator;
 
     private final JoinStatisticsCounter statisticsCounter;
 
@@ -76,6 +75,7 @@ public class LookupJoinOperator
     private JoinProbe probe;
 
     private Optional<PartitioningSpiller> spiller = Optional.empty();
+    private Optional<LocalPartitionGenerator> partitionGenerator = Optional.empty();
     private ListenableFuture<?> spillInProgress = NOT_BLOCKED;
     private long inputPageSpillEpoch;
     private boolean closed;
@@ -119,7 +119,6 @@ public class LookupJoinOperator
         this.hashGenerator = requireNonNull(hashGenerator, "hashGenerator is null");
         this.lookupSourceFactory = requireNonNull(lookupSourceFactory, "lookupSourceFactory is null");
         this.partitioningSpillerFactory = requireNonNull(partitioningSpillerFactory, "partitioningSpillerFactory is null");
-        this.partitionGenerator = new LocalPartitionGenerator(hashGenerator, lookupSourceFactory.partitions());
         this.lookupSourceProviderFuture = lookupSourceFactory.createLookupSourceProvider();
 
         this.statisticsCounter = new JoinStatisticsCounter(joinType);
@@ -254,7 +253,7 @@ public class LookupJoinOperator
         if (!spiller.isPresent()) {
             spiller = Optional.of(partitioningSpillerFactory.create(
                     probeTypes,
-                    partitionGenerator,
+                    getPartitionGenerator(),
                     lookupSourceFactory.partitions(),
                     operatorContext.getSpillContext()::newLocalSpillContext,
                     operatorContext.getSystemMemoryContext().newAggregatedMemoryContext()));
@@ -263,6 +262,14 @@ public class LookupJoinOperator
         PartitioningSpillResult result = spiller.get().partitionAndSpill(page, spillMask);
         spillInProgress = result.getSpillingFuture();
         return mask(page, result.getUnspilledPositions());
+    }
+
+    public LocalPartitionGenerator getPartitionGenerator()
+    {
+        if (!partitionGenerator.isPresent()) {
+            partitionGenerator = Optional.of(new LocalPartitionGenerator(hashGenerator, lookupSourceFactory.partitions()));
+        }
+        return partitionGenerator.get();
     }
 
     @Override
@@ -402,7 +409,7 @@ public class LookupJoinOperator
 
         Page currentPage = probe.getPage();
         int currentPosition = probe.getPosition();
-        int currentRowPartition = partitionGenerator.getPartition(currentPosition, currentPage);
+        int currentRowPartition = getPartitionGenerator().getPartition(currentPosition, currentPage);
         boolean currentRowSpilled = spillMask.test(currentRowPartition);
 
         // TODO SavedRow compacts, it should not be used when !currentRowSpilled
