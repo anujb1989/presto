@@ -14,11 +14,14 @@
 package com.facebook.presto.operator;
 
 import com.facebook.presto.spi.Page;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import org.openjdk.jol.info.ClassLayout;
 
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import static io.airlift.slice.SizeOf.sizeOf;
 import static java.util.Objects.requireNonNull;
@@ -27,6 +30,7 @@ public final class ArrayPositionLinks
         implements PositionLinks
 {
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(ArrayPositionLinks.class).instanceSize();
+
     public static class Builder implements PositionLinks.Builder
     {
         private final int[] positionLinks;
@@ -79,5 +83,14 @@ public final class ArrayPositionLinks
     public long getSizeInBytes()
     {
         return INSTANCE_SIZE + sizeOf(positionLinks);
+    }
+
+    @Override
+    public long checksum()
+    {
+        Hasher hasher = Hashing.md5().newHasher();
+        IntStream.of(positionLinks)
+                .forEach(hasher::putInt);
+        return hasher.hash().asLong();
     }
 }

@@ -98,6 +98,12 @@ public final class JoinHash
     }
 
     @Override
+    public long checksum()
+    {
+        return positionLinks.checksum();
+    }
+
+    @Override
     public void appendTo(long position, PageBuilder pageBuilder, int outputChannelOffset)
     {
         pagesHash.appendTo(toIntExact(position), pageBuilder, outputChannelOffset);

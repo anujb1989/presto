@@ -22,6 +22,7 @@ import com.facebook.presto.operator.DriverFactory;
 import com.facebook.presto.operator.LookupSource;
 import com.facebook.presto.operator.PagesIndex;
 import com.facebook.presto.operator.PipelineContext;
+import com.facebook.presto.operator.PositionLinks;
 import com.facebook.presto.operator.TaskContext;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.PageBuilder;
@@ -430,6 +431,12 @@ public class IndexLoader
         public boolean isJoinPositionEligible(long currentJoinPosition, int probePosition, Page allProbeChannelsPage)
         {
             return true;
+        }
+
+        @Override
+        public long checksum()
+        {
+            return channelCount;
         }
 
         @Override

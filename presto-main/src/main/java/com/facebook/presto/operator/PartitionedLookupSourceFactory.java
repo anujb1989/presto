@@ -399,6 +399,12 @@ public final class PartitionedLookupSourceFactory
         }
 
         @Override
+        public long checksum()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public void close()
         {
         }

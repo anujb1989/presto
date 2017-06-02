@@ -17,6 +17,8 @@ import com.facebook.presto.operator.exchange.LocalPartitionGenerator;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.PageBuilder;
 import com.facebook.presto.spi.type.Type;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -156,6 +158,12 @@ public class PartitionedLookupSource
         long joinPosition = decodeJoinPosition(currentJoinPosition);
         LookupSource lookupSource = lookupSources[partition];
         return lookupSource.isJoinPositionEligible(joinPosition, probePosition, allProbeChannelsPage);
+    }
+
+    @Override
+    public long checksum()
+    {
+        throw new UnsupportedOperationException();
     }
 
     @Override

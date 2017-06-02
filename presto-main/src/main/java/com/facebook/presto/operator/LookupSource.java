@@ -40,6 +40,11 @@ public interface LookupSource
 
     boolean isJoinPositionEligible(long currentJoinPosition, int probePosition, Page allProbeChannelsPage);
 
+    /**
+     * @return checksum of this entity, useful when entity is restored from spilled data
+     */
+    long checksum();
+
     @Override
     void close();
 }

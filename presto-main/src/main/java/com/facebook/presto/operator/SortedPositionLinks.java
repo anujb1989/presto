@@ -200,6 +200,12 @@ public final class SortedPositionLinks
     }
 
     @Override
+    public long checksum()
+    {
+        return positionLinks.checksum();
+    }
+
+    @Override
     public int start(int startingPosition, int probePosition, Page allProbeChannelsPage)
     {
         // check if filtering function to startingPosition

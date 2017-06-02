@@ -17,6 +17,7 @@ import com.facebook.presto.spi.Page;
 
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.zip.Checksum;
 
 /**
  * This class is responsible for iterating over build rows, which have
@@ -53,4 +54,9 @@ public interface PositionLinks
          */
         Function<Optional<JoinFilterFunction>, PositionLinks> build();
     }
+
+    /**
+     * @return a checksum for this {@link PositionLinks}, useful when entity is restored from spilled data
+     */
+    long checksum();
 }

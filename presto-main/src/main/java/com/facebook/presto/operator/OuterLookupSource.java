@@ -88,6 +88,12 @@ public final class OuterLookupSource
     }
 
     @Override
+    public long checksum()
+    {
+        return lookupSource.checksum();
+    }
+
+    @Override
     public void appendTo(long position, PageBuilder pageBuilder, int outputChannelOffset)
     {
         lookupSource.appendTo(position, pageBuilder, outputChannelOffset);

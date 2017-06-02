@@ -23,6 +23,7 @@ import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
 import java.util.ArrayDeque;
@@ -242,6 +243,9 @@ public class HashBuilderOperator
     private long spilledPagesInMemorySize;
     private ListenableFuture<?> spillInProgress = NOT_BLOCKED;
     private Optional<ListenableFuture<List<Page>>> unspillInProgress = Optional.empty();
+    @Nullable
+    private LookupSourceSupplier lookupSourceSupplier;
+    private long lookupSourceChecksum = -1;
 
     public HashBuilderOperator(
             OperatorContext operatorContext,
@@ -370,7 +374,8 @@ public class HashBuilderOperator
         checkState(spillEnabled, "Spill not enabled, no revokable memory should be reserved");
 
         if (state == State.LOOKUP_SOURCE_BUILT) {
-            // TODO compute checksum of lookupSource's position links for validation when lookupSource is rebuilt
+            requireNonNull(lookupSourceSupplier);
+            lookupSourceChecksum = lookupSourceSupplier.get().checksum();
         }
 
         if (state == State.CONSUMING_INPUT || state == State.LOOKUP_SOURCE_BUILT) {
@@ -539,6 +544,7 @@ public class HashBuilderOperator
         }
 
         LookupSource lookupSource = buildLookupSource().get();
+        checkState(lookupSource.checksum() == lookupSourceChecksum, "Unspilled lookupSource checksum changed after spilling and unspilling");
         operatorContext.setMemoryReservation(lookupSource.getInMemorySizeInBytes());
         spilledLookupSourceHandle.setLookupSource(lookupSource);
 
@@ -565,6 +571,8 @@ public class HashBuilderOperator
 
         LookupSourceSupplier partition = index.createLookupSourceSupplier(operatorContext.getSession(), hashChannels, preComputedHashChannel, filterFunctionFactory, Optional.of(outputChannels));
         hashCollisionsCounter.recordHashCollision(partition.getHashCollisions(), partition.getExpectedHashCollisions());
+        checkState(lookupSourceSupplier == null, "lookupSourceSupplier is already set");
+        this.lookupSourceSupplier = partition;
         return partition;
     }
 
