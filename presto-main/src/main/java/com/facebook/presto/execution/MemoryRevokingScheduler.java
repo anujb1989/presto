@@ -54,12 +54,12 @@ public class MemoryRevokingScheduler
             TaskManagementExecutor taskManagementExecutor,
             FeaturesConfig config)
     {
-        requireNonNull(localMemoryManager, "localMemoryManager can not be null");
-        this.memoryPools = ImmutableList.of(localMemoryManager.getPool(LocalMemoryManager.GENERAL_POOL), localMemoryManager.getPool(LocalMemoryManager.RESERVED_POOL));
-        this.currentTasksSupplier = requireNonNull(sqlTaskManager, "sqlTaskManager cannot be null")::getAllTasks;
-        this.taskManagementExecutor = requireNonNull(taskManagementExecutor, "taskManagementExecutor cannot be null").getExecutor();
-        this.memoryRevokingThreshold = config.getMemoryRevokingThreshold();
-        this.memoryRevokingTarget = config.getMemoryRevokingTarget();
+        this(
+                ImmutableList.copyOf(getMemoryPools(localMemoryManager)),
+                requireNonNull(sqlTaskManager, "sqlTaskManager cannot be null")::getAllTasks,
+                requireNonNull(taskManagementExecutor, "taskManagementExecutor cannot be null").getExecutor(),
+                config.getMemoryRevokingThreshold(),
+                config.getMemoryRevokingTarget());
     }
 
     @VisibleForTesting
@@ -75,6 +75,12 @@ public class MemoryRevokingScheduler
         this.taskManagementExecutor = taskManagementExecutor;
         this.memoryRevokingThreshold = memoryRevokingThreshold;
         this.memoryRevokingTarget = memoryRevokingTarget;
+    }
+
+    private static List<MemoryPool> getMemoryPools(LocalMemoryManager localMemoryManager)
+    {
+        requireNonNull(localMemoryManager, "localMemoryManager can not be null");
+        return ImmutableList.of(localMemoryManager.getPool(LocalMemoryManager.GENERAL_POOL), localMemoryManager.getPool(LocalMemoryManager.RESERVED_POOL));
     }
 
     @PostConstruct
