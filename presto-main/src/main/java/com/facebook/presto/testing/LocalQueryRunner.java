@@ -378,7 +378,7 @@ public class LocalQueryRunner
         this.statsCalculator = new SelectingStatsCalculator(
                 new CoefficientBasedStatsCalculator(metadata),
                 ServerMainModule.createNewStatsCalculator(metadata, new FilterStatsCalculator(metadata), new ScalarStatsCalculator(metadata)));
-        this.costCalculator = new CostCalculatorUsingExchanges(getNodeCount());
+        this.costCalculator = new CostCalculatorUsingExchanges(this::getNodeCount);
         this.estimatedExchangesCostCalculator = new CostCalculatorWithEstimatedExchanges(costCalculator, this::getNodeCount);
         this.lookup = new StatelessLookup(statsCalculator, costCalculator);
     }
