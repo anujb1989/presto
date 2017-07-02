@@ -94,28 +94,6 @@ public final class MoreMath
                 .sum();
     }
 
-    public static double rangeMin(double left, double right)
-    {
-        if (isNaN(left)) {
-            return right;
-        }
-        else if (isNaN(right)) {
-            return left;
-        }
-        return min(left, right);
-    }
-
-    public static double rangeMax(double left, double right)
-    {
-        if (isNaN(left)) {
-            return right;
-        }
-        else if (isNaN(right)) {
-            return left;
-        }
-        return max(left, right);
-    }
-
     public static boolean isPositiveOrNan(double value)
     {
         return value > 0 || isNaN(value);

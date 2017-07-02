@@ -145,6 +145,13 @@ public class PlanNodeStatsEstimate
                 .setSymbolStatistics(other.symbolStatistics);
     }
 
+    public PlanNodeStatsEstimate addSymbolStatistics(Symbol symbol, SymbolStatsEstimate symbolStatsEstimate)
+    {
+        return buildFrom(this)
+                .addSymbolStatistics(symbol, symbolStatsEstimate)
+                .build();
+    }
+
     public static final class Builder
     {
         private double outputRowCount = NaN;
