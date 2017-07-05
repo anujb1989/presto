@@ -7056,6 +7056,8 @@ public abstract class AbstractTestQueries
     {
         String errorMsg = "Unexpected node: com.facebook.presto.sql.planner.plan.LateralJoinNode";
 
+        assertQuery("SELECT name FROM nation n WHERE 'AFRICA' = (SELECT name FROM region WHERE regionkey = n.regionkey)");
+
         assertQueryFails("SELECT (SELECT l.orderkey) FROM lineitem l", errorMsg);
         assertQueryFails("SELECT (SELECT 2 * l.orderkey) FROM lineitem l", errorMsg);
         assertQueryFails("SELECT * FROM lineitem l WHERE 1 = (SELECT 2 * l.orderkey)", errorMsg);
@@ -7078,6 +7080,79 @@ public abstract class AbstractTestQueries
 
         // explicit limit in subquery
         assertQueryFails("SELECT (SELECT count(*) FROM (VALUES (7,1)) t(orderkey, value) WHERE orderkey = corr_key LIMIT 1) FROM (values 7) t(corr_key)", errorMsg);
+    }
+
+    @Test
+    public void testCorrelatedNonAggregationScalarSubqueries()
+    {
+        String unsupportedSubquery = "Unexpected node: com.facebook.presto.sql.planner.plan.LateralJoinNode";
+        String subqueryReturnedTooManyRows = "Scalar sub-query has returned multiple rows";
+
+//        assertQueryFails(
+//                "SELECT name FROM nation n WHERE 'AFRICA' = (SELECT name FROM region WHERE regionkey > n.regionkey)",
+//                subqueryReturnedTooManyRows);
+
+//        assertQuery(
+//                "SELECT (SELECT 2 WHERE o.orderkey = 1) FROM orders o ORDER BY orderkey LIMIT 5",
+//                "VALUES 2, null, null, null, null");
+        // outputs plain correlated orderkey symbol which causes ambiguity with outer query orderkey symbol
+        assertQueryFails(
+                "SELECT (SELECT o.orderkey WHERE o.orderkey = 1) FROM orders o ORDER BY orderkey LIMIT 5",
+                unsupportedSubquery);
+        assertQuery(
+                "SELECT (SELECT o.orderkey * 2 WHERE o.orderkey = 1) FROM orders o ORDER BY orderkey LIMIT 5",
+                "VALUES 2, null, null, null, null");
+        // correlation used outside the subquery
+        assertQuery(
+                "SELECT o.orderkey, (SELECT o.orderkey * 2 WHERE o.orderkey = 1) FROM orders o ORDER BY orderkey LIMIT 5",
+                "VALUES (1, 2), (2, null), (3, null), (4, null), (5, null)");
+
+        // aggregation with having
+        // uncomment below test once #8456 is fixed
+//        assertQuery(
+//                "SELECT (SELECT avg(totalprice) FROM orders GROUP BY custkey, orderdate HAVING avg(totalprice) < a) FROM (VALUES 900) t(a)");
+//                "k");
+
+        // correlation in predicate
+        assertQuery("SELECT name FROM nation n WHERE 'AFRICA' = (SELECT name FROM region WHERE regionkey = n.regionkey)");
+
+        // same correlation in predicate and projection
+        assertQuery(
+                "SELECT nationkey FROM nation n WHERE " +
+                        "(SELECT n.regionkey * 2 FROM region r WHERE n.regionkey = r.regionkey) > 6");
+
+        // different correlation in predicate and projection
+        assertQueryFails(
+                "SELECT nationkey FROM nation n WHERE " +
+                        "(SELECT n.nationkey * 2 FROM region r WHERE n.regionkey = r.regionkey) > 6",
+                unsupportedSubquery);
+
+        // correlation used in subrelation
+        assertQuery(
+                "SELECT nationkey FROM nation n WHERE " +
+                        "(SELECT regionkey * 2 FROM (SELECT regionkey FROM region r WHERE n.regionkey = r.regionkey)) > 6 " +
+                        "ORDER BY 1 LIMIT 3",
+                "VALUES 4, 10, 11"); // h2 didn't make it
+
+        // with duplicated rows
+        assertQuery(
+                "SELECT (SELECT name FROM nation WHERE nationkey = a) FROM (VALUES 1, 1, 2, 3) t(a)",
+                "VALUES 'ARGENTINA', 'ARGENTINA', 'BRAZIL', 'CANADA'"); // h2 didn't make it
+
+        // limit
+        assertQueryFails(
+                "SELECT (SELECT name FROM nation WHERE nationkey = a LIMIT 1) FROM (VALUES 1, 1, 2, 3) t(a)",
+                unsupportedSubquery);
+
+        // returning null as nothing matched
+        assertQuery(
+                "SELECT (SELECT name FROM nation WHERE nationkey = a) FROM (VALUES 31) t(a)",
+                "VALUES null");
+
+        // correlation over join
+        assertQueryFails(
+                "SELECT (SELECT r.name FROM nation n, reigon r WHERE r.regionkey = n.regionkey AND n.nationkey = a) FROM (VALUES 1) t(a)",
+                unsupportedSubquery);
     }
 
     @Test

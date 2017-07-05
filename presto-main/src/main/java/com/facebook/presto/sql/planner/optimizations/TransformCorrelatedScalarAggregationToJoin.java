@@ -111,7 +111,7 @@ public class TransformCorrelatedScalarAggregationToJoin
                     .where(AggregationNode.class::isInstance)
                     .skipOnlyWhen(isInstanceOfAny(ProjectNode.class, EnforceSingleRowNode.class))
                     .findFirst();
-            
+
             if (!aggregation.isPresent() || !aggregation.get().getGroupingKeys().isEmpty()) {
                 return rewrittenNode;
             }

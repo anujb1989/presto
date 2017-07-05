@@ -61,6 +61,7 @@ import com.facebook.presto.sql.planner.iterative.rule.SimplifyCountOverConstant;
 import com.facebook.presto.sql.planner.iterative.rule.SingleMarkDistinctToGroupBy;
 import com.facebook.presto.sql.planner.iterative.rule.SwapAdjacentWindowsBySpecifications;
 import com.facebook.presto.sql.planner.iterative.rule.TransformCorrelatedInPredicateToJoin;
+import com.facebook.presto.sql.planner.iterative.rule.TransformCorrelatedNonAggregationScalarToJoin;
 import com.facebook.presto.sql.planner.iterative.rule.TransformExistsApplyToLateralNode;
 import com.facebook.presto.sql.planner.optimizations.AddExchanges;
 import com.facebook.presto.sql.planner.optimizations.AddLocalExchanges;
@@ -226,6 +227,7 @@ public class PlanOptimizers
                         stats,
                         ImmutableSet.of(
                                 new TransformCorrelatedInPredicateToJoin(), // must be run after PruneUnreferencedOutputs
+                                new TransformCorrelatedNonAggregationScalarToJoin(metadata.getFunctionRegistry()),
                                 new ImplementFilteredAggregations())
                 ),
                 new TransformCorrelatedNoAggregationSubqueryToJoin(),

@@ -58,6 +58,13 @@ public class SymbolMapper
         return (node, context) -> ImmutableList.copyOf(sources);
     }
 
+    public static RecursionStrategy recurse()
+    {
+        return (node, context) -> node.getSources().stream()
+                .map(context::defaultRewrite)
+                .collect(toImmutableList());
+    }
+
     private final Map<Symbol, Symbol> mapping;
 
     public SymbolMapper(Map<Symbol, Symbol> mapping)
@@ -254,7 +261,8 @@ public class SymbolMapper
             return ImmutableMap.copyOf(result);
         }
 
-        private Assignments mapAndDistinct(Assignments assignments) {
+        private Assignments mapAndDistinct(Assignments assignments)
+        {
             Assignments.Builder builder = Assignments.builder();
             for (Symbol symbol : assignments.getSymbols()) {
                 builder.put(map(symbol), map(assignments.get(symbol)));
