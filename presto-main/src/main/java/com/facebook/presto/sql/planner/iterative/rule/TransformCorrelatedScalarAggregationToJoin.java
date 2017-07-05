@@ -100,14 +100,7 @@ public class TransformCorrelatedScalarAggregationToJoin
         }
 
         ScalarSubqueryToJoinRewriter rewriter = new ScalarSubqueryToJoinRewriter(functionRegistry, symbolAllocator, idAllocator, lookup);
-
-        PlanNode rewrittenNode = rewriter.rewriteScalarAggregation(lateralJoinNode, aggregation.get());
-
-        if (rewrittenNode instanceof LateralJoinNode) {
-            return Optional.empty();
-        }
-
-        return Optional.of(rewrittenNode);
+        return rewriter.rewriteScalarAggregation(lateralJoinNode, aggregation.get());
     }
 
     private static Optional<AggregationNode> findAggregation(PlanNode rootNode, Lookup lookup)

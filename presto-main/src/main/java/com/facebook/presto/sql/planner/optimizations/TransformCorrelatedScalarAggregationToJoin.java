@@ -110,7 +110,8 @@ public class TransformCorrelatedScalarAggregationToJoin
                         .findFirst();
                 if (aggregation.isPresent() && aggregation.get().getGroupingKeys().isEmpty()) {
                     ScalarSubqueryToJoinRewriter scalarSubqueryToJoinRewriter = new ScalarSubqueryToJoinRewriter(functionRegistry, symbolAllocator, idAllocator, noLookup());
-                    return scalarSubqueryToJoinRewriter.rewriteScalarAggregation(rewrittenNode, aggregation.get());
+                    return scalarSubqueryToJoinRewriter.rewriteScalarAggregation(rewrittenNode, aggregation.get())
+                            .orElse(rewrittenNode);
                 }
             }
             return rewrittenNode;
