@@ -103,18 +103,22 @@ public class TransformCorrelatedScalarAggregationToJoin
         public PlanNode visitLateralJoin(LateralJoinNode node, RewriteContext<PlanNode> context)
         {
             LateralJoinNode rewrittenNode = (LateralJoinNode) context.defaultRewrite(node, context.get());
-            if (!rewrittenNode.getCorrelation().isEmpty()) {
-                Optional<AggregationNode> aggregation = searchFrom(rewrittenNode.getSubquery())
-                        .where(AggregationNode.class::isInstance)
-                        .skipOnlyWhen(isInstanceOfAny(ProjectNode.class, EnforceSingleRowNode.class))
-                        .findFirst();
-                if (aggregation.isPresent() && aggregation.get().getGroupingKeys().isEmpty()) {
-                    ScalarSubqueryToJoinRewriter scalarSubqueryToJoinRewriter = new ScalarSubqueryToJoinRewriter(functionRegistry, symbolAllocator, idAllocator, noLookup());
-                    return scalarSubqueryToJoinRewriter.rewriteScalarAggregation(rewrittenNode, aggregation.get())
-                            .orElse(rewrittenNode);
-                }
+            if (rewrittenNode.getCorrelation().isEmpty()) {
+                return rewrittenNode;
             }
-            return rewrittenNode;
+
+            Optional<AggregationNode> aggregation = searchFrom(rewrittenNode.getSubquery())
+                    .where(AggregationNode.class::isInstance)
+                    .skipOnlyWhen(isInstanceOfAny(ProjectNode.class, EnforceSingleRowNode.class))
+                    .findFirst();
+            
+            if (!aggregation.isPresent() || !aggregation.get().getGroupingKeys().isEmpty()) {
+                return rewrittenNode;
+            }
+
+            ScalarSubqueryToJoinRewriter scalarSubqueryToJoinRewriter = new ScalarSubqueryToJoinRewriter(functionRegistry, symbolAllocator, idAllocator, noLookup());
+            return scalarSubqueryToJoinRewriter.rewriteScalarAggregation(rewrittenNode, aggregation.get())
+                    .orElse(rewrittenNode);
         }
     }
 }
