@@ -109,8 +109,8 @@ public class TransformCorrelatedScalarAggregationToJoin
                         .skipOnlyWhen(isInstanceOfAny(ProjectNode.class, EnforceSingleRowNode.class))
                         .findFirst();
                 if (aggregation.isPresent() && aggregation.get().getGroupingKeys().isEmpty()) {
-                    ScalarAggregationToJoinRewriter scalarAggregationToJoinRewriter = new ScalarAggregationToJoinRewriter(functionRegistry, symbolAllocator, idAllocator, noLookup());
-                    return scalarAggregationToJoinRewriter.rewriteScalarAggregation(rewrittenNode, aggregation.get());
+                    ScalarSubqueryToJoinRewriter scalarSubqueryToJoinRewriter = new ScalarSubqueryToJoinRewriter(functionRegistry, symbolAllocator, idAllocator, noLookup());
+                    return scalarSubqueryToJoinRewriter.rewriteScalarAggregation(rewrittenNode, aggregation.get());
                 }
             }
             return rewrittenNode;

@@ -20,7 +20,7 @@ import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.SymbolAllocator;
 import com.facebook.presto.sql.planner.iterative.Lookup;
 import com.facebook.presto.sql.planner.iterative.Rule;
-import com.facebook.presto.sql.planner.optimizations.ScalarAggregationToJoinRewriter;
+import com.facebook.presto.sql.planner.optimizations.ScalarSubqueryToJoinRewriter;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
 import com.facebook.presto.sql.planner.plan.EnforceSingleRowNode;
 import com.facebook.presto.sql.planner.plan.LateralJoinNode;
@@ -99,7 +99,7 @@ public class TransformCorrelatedScalarAggregationToJoin
             return Optional.empty();
         }
 
-        ScalarAggregationToJoinRewriter rewriter = new ScalarAggregationToJoinRewriter(functionRegistry, symbolAllocator, idAllocator, lookup);
+        ScalarSubqueryToJoinRewriter rewriter = new ScalarSubqueryToJoinRewriter(functionRegistry, symbolAllocator, idAllocator, lookup);
 
         PlanNode rewrittenNode = rewriter.rewriteScalarAggregation(lateralJoinNode, aggregation.get());
 
