@@ -83,6 +83,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.facebook.presto.sql.planner.optimizations.SymbolMapper.inject;
 import static com.facebook.presto.sql.planner.plan.JoinNode.Type.INNER;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
@@ -112,7 +113,7 @@ public class UnaliasSymbolReferences
         requireNonNull(symbolAllocator, "symbolAllocator is null");
         requireNonNull(idAllocator, "idAllocator is null");
 
-        return SimplePlanRewriter.rewriteWith(new Rewriter(types), plan);
+        return SimplePlanRewriter.rewriteWith(new Rewriter(types, idAllocator), plan);
     }
 
     private static class Rewriter
@@ -120,10 +121,12 @@ public class UnaliasSymbolReferences
     {
         private final Map<Symbol, Symbol> mapping = new HashMap<>();
         private final Map<Symbol, Type> types;
+        private final PlanNodeIdAllocator idAllocator;
 
-        private Rewriter(Map<Symbol, Type> types)
+        private Rewriter(Map<Symbol, Type> types, PlanNodeIdAllocator idAllocator)
         {
-            this.types = types;
+            this.types = requireNonNull(types, "types is null");
+            this.idAllocator = requireNonNull(idAllocator, "idAllocator is null");
         }
 
         @Override
@@ -132,7 +135,7 @@ public class UnaliasSymbolReferences
             PlanNode source = context.rewrite(node.getSource());
             //TODO: use mapper in other methods
             SymbolMapper mapper = new SymbolMapper(mapping);
-            return mapper.map(node, source);
+            return mapper.map(node, idAllocator, inject(source));
         }
 
         @Override
@@ -456,7 +459,7 @@ public class UnaliasSymbolReferences
             PlanNode source = context.rewrite(node.getSource());
 
             SymbolMapper mapper = new SymbolMapper(mapping);
-            return mapper.map(node, source, node.getId());
+            return mapper.map(node, idAllocator, inject(source));
         }
 
         @Override

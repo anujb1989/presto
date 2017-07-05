@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.facebook.presto.SystemSessionProperties.isPushAggregationThroughJoin;
+import static com.facebook.presto.sql.planner.optimizations.SymbolMapper.inject;
 import static com.facebook.presto.sql.planner.plan.AggregationNode.Step.FINAL;
 import static com.facebook.presto.sql.planner.plan.AggregationNode.Step.PARTIAL;
 import static com.facebook.presto.sql.planner.plan.AggregationNode.Step.SINGLE;
@@ -256,7 +257,7 @@ public class PartialAggregationPushDown
                     aggregation.getStep(),
                     aggregation.getHashSymbol(),
                     aggregation.getGroupIdSymbol());
-            return new SymbolMapper(mapping.build()).map(pushedAggregation, source);
+            return new SymbolMapper(mapping.build()).map(pushedAggregation, idAllocator, inject(source));
         }
 
         private boolean allAggregationsOn(Map<Symbol, Aggregation> aggregations, List<Symbol> outputSymbols)
@@ -306,7 +307,7 @@ public class PartialAggregationPushDown
                 }
 
                 SymbolMapper symbolMapper = mappingsBuilder.build();
-                AggregationNode mappedPartial = symbolMapper.map(partial, source, idAllocator);
+                AggregationNode mappedPartial = symbolMapper.map(partial, idAllocator, inject(source));
 
                 Assignments.Builder assignments = Assignments.builder();
 

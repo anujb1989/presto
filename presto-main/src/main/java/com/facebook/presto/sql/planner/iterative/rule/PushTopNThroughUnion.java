@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.facebook.presto.sql.planner.optimizations.SymbolMapper.inject;
 import static com.facebook.presto.sql.planner.plan.TopNNode.Step.PARTIAL;
 import static com.google.common.collect.Iterables.getLast;
 import static com.google.common.collect.Sets.intersection;
@@ -75,7 +76,7 @@ public class PushTopNThroughUnion
                 Symbol unionInput = getLast(intersection(inputSymbols, sourceOutputSymbols));
                 symbolMapper.put(unionOutput, unionInput);
             }
-            sources.add(symbolMapper.build().map(topNNode, source, idAllocator.getNextId()));
+            sources.add(symbolMapper.build().map(topNNode, idAllocator, inject(source)));
         }
 
         return Optional.of(new UnionNode(
