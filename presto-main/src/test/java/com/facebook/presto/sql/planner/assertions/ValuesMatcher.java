@@ -19,6 +19,7 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.ValuesNode;
 import com.facebook.presto.sql.tree.Expression;
+import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
@@ -74,10 +75,14 @@ public class ValuesMatcher
     @Override
     public String toString()
     {
-        return toStringHelper(this)
-                .add("outputSymbolAliases", outputSymbolAliases)
-                .add("expectedOutputSymbolCount", expectedOutputSymbolCount)
-                .add("expectedRows", expectedRows)
-                .toString();
+        ToStringHelper toStringHelper = toStringHelper(this)
+                .add("outputSymbolAliases", this.outputSymbolAliases);
+        if (expectedOutputSymbolCount.isPresent()) {
+            toStringHelper.add("expectedOutputSymbolCount", expectedOutputSymbolCount);
+        }
+        if (expectedRows.isPresent()) {
+            toStringHelper.add("expectedRows", expectedRows);
+        }
+        return toStringHelper.toString();
     }
 }

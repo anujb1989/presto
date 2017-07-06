@@ -19,6 +19,7 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.tree.Expression;
+import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
@@ -97,9 +98,11 @@ final class JoinMatcher
     @Override
     public String toString()
     {
-        return toStringHelper(this)
-                .add("equiCriteria", equiCriteria)
-                .add("filter", filter)
-                .toString();
+        ToStringHelper stringHelper = toStringHelper(this)
+                .add("equiCriteria", this.equiCriteria);
+        if (filter.isPresent()) {
+            stringHelper.add("filter", filter);
+        }
+        return stringHelper.toString();
     }
 }
