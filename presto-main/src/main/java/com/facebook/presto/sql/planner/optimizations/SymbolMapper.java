@@ -25,6 +25,7 @@ import com.facebook.presto.sql.planner.plan.ProjectNode;
 import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.planner.plan.TopNNode;
+import com.facebook.presto.sql.planner.plan.ValuesNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.ExpressionRewriter;
 import com.facebook.presto.sql.tree.ExpressionTreeRewriter;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.facebook.presto.sql.planner.plan.util.PlanNodeUtils.pruneValuesNode;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.Iterables.getOnlyElement;
@@ -70,6 +72,13 @@ public class SymbolMapper
             canonical = mapping.get(canonical);
         }
         return canonical;
+    }
+
+    public List<Expression> map(List<Expression> values)
+    {
+        return values.stream()
+                .map(this::map)
+                .collect(toImmutableList());
     }
 
     public Expression map(Expression value)
@@ -204,6 +213,22 @@ public class SymbolMapper
                     sources.get(1),
                     mapAndDistinct(node.getSubqueryAssignments()),
                     mapAndDistinct(node.getCorrelation()));
+        }
+
+        @Override
+        public PlanNode visitValues(ValuesNode node, RewriteContext<Void> context)
+        {
+            ValuesNode intermediate = new ValuesNode(
+                    idAllocator.getNextId(),
+                    node.getOutputSymbols().stream()
+                            .map(SymbolMapper.this::map)
+                            .collect(toImmutableList()),
+                    node.getRows().stream()
+                            .map(SymbolMapper.this::map)
+                            .collect(toImmutableList()));
+
+            Set<Symbol> added = new HashSet<>();
+            return pruneValuesNode(intermediate, idAllocator.getNextId(), added::add);
         }
 
         private List<Symbol> mapAndDistinct(List<Symbol> outputs)
