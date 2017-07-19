@@ -145,10 +145,10 @@ public class MockRemoteTaskFactory
         private final PlanFragment fragment;
 
         @GuardedBy("this")
-        private final Set<PlanNodeId> noMoreSplits = new HashSet<>();
+        private final Set<PlanNode> noMoreSplits = new HashSet<>();
 
         @GuardedBy("this")
-        private final Multimap<PlanNodeId, Split> splits = HashMultimap.create();
+        private final Multimap<PlanNode, Split> splits = HashMultimap.create();
 
         @GuardedBy("this")
         private int runningDrivers = 0;
@@ -162,7 +162,7 @@ public class MockRemoteTaskFactory
                 PlanFragment fragment,
                 String nodeId,
                 Executor executor,
-                Multimap<PlanNodeId, Split> initialSplits,
+                Multimap<PlanNode, Split> initialSplits,
                 PartitionedSplitCountTracker partitionedSplitCountTracker)
         {
             this.taskStateMachine = new TaskStateMachine(requireNonNull(taskId, "taskId is null"), requireNonNull(executor, "executor is null"));
@@ -251,12 +251,12 @@ public class MockRemoteTaskFactory
 
         public synchronized void finishSplits(int splits)
         {
-            List<Map.Entry<PlanNodeId, Split>> toRemove = new ArrayList<>();
-            Iterator<Map.Entry<PlanNodeId, Split>> iterator = this.splits.entries().iterator();
+            List<Map.Entry<PlanNode, Split>> toRemove = new ArrayList<>();
+            Iterator<Map.Entry<PlanNode, Split>> iterator = this.splits.entries().iterator();
             while (toRemove.size() < splits && iterator.hasNext()) {
                 toRemove.add(iterator.next());
             }
-            for (Map.Entry<PlanNodeId, Split> entry : toRemove) {
+            for (Map.Entry<PlanNode, Split> entry : toRemove) {
                 this.splits.remove(entry.getKey(), entry.getValue());
             }
             updateSplitQueueSpace();
@@ -288,7 +288,7 @@ public class MockRemoteTaskFactory
         }
 
         @Override
-        public void addSplits(Multimap<PlanNodeId, Split> splits)
+        public void addSplits(Multimap<PlanNode, Split> splits)
         {
             synchronized (this) {
                 this.splits.putAll(splits);
@@ -298,13 +298,12 @@ public class MockRemoteTaskFactory
         }
 
         @Override
-        public synchronized void noMoreSplits(PlanNodeId sourceId)
+        public synchronized void noMoreSplits(PlanNode source)
         {
-            noMoreSplits.add(sourceId);
+            noMoreSplits.add(source);
 
             boolean allSourcesComplete = Stream.concat(fragment.getPartitionedSourceNodes().stream(), fragment.getRemoteSourceNodes().stream())
                     .filter(Objects::nonNull)
-                    .map(PlanNode::getId)
                     .allMatch(noMoreSplits::contains);
 
             if (allSourcesComplete) {

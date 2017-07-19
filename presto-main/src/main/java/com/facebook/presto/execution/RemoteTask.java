@@ -16,7 +16,7 @@ package com.facebook.presto.execution;
 import com.facebook.presto.OutputBuffers;
 import com.facebook.presto.execution.StateMachine.StateChangeListener;
 import com.facebook.presto.metadata.Split;
-import com.facebook.presto.sql.planner.plan.PlanNodeId;
+import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -32,9 +32,9 @@ public interface RemoteTask
 
     void start();
 
-    void addSplits(Multimap<PlanNodeId, Split> splits);
+    void addSplits(Multimap<PlanNode, Split> splits);
 
-    void noMoreSplits(PlanNodeId sourceId);
+    void noMoreSplits(PlanNode source);
 
     void setOutputBuffers(OutputBuffers outputBuffers);
 
