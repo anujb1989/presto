@@ -59,7 +59,7 @@ public class GroupIdNode
             @JsonProperty("argumentMappings") Map<Symbol, Symbol> argumentMappings,
             @JsonProperty("groupIdSymbol") Symbol groupIdSymbol)
     {
-        super(id);
+        super();
         this.source = requireNonNull(source);
         this.groupingSets = listOfListsCopy(requireNonNull(groupingSets, "groupingSets is null"));
         this.groupingSetMappings = ImmutableMap.copyOf(requireNonNull(groupingSetMappings));

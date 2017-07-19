@@ -52,7 +52,7 @@ public final class TopNRowNumberNode
             @JsonProperty("partial") boolean partial,
             @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
     {
-        super(id);
+        super();
 
         requireNonNull(source, "source is null");
         requireNonNull(specification, "specification is null");

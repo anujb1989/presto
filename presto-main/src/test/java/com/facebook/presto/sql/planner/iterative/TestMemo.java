@@ -220,7 +220,7 @@ public class TestMemo
 
         public GenericNode(PlanNodeId id, List<PlanNode> sources)
         {
-            super(id);
+            super();
             this.sources = ImmutableList.copyOf(sources);
         }
 

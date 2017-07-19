@@ -31,7 +31,7 @@ public class GroupReference
 
     public GroupReference(PlanNodeId id, int groupId, List<Symbol> outputs)
     {
-        super(id);
+        super();
         this.groupId = groupId;
         this.outputs = ImmutableList.copyOf(outputs);
     }

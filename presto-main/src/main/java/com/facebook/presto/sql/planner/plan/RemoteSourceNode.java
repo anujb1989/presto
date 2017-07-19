@@ -38,7 +38,7 @@ public class RemoteSourceNode
             @JsonProperty("sourceFragmentIds") List<PlanFragmentId> sourceFragmentIds,
             @JsonProperty("outputs") List<Symbol> outputs)
     {
-        super(id);
+        super();
 
         requireNonNull(outputs, "outputs is null");
 

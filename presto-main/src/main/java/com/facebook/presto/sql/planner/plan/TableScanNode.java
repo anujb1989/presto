@@ -69,7 +69,7 @@ public class TableScanNode
             @JsonProperty("currentConstraint") TupleDomain<ColumnHandle> currentConstraint,
             @JsonProperty("originalConstraint") @Nullable Expression originalConstraint)
     {
-        super(id);
+        super();
         requireNonNull(table, "table is null");
         requireNonNull(outputs, "outputs is null");
         requireNonNull(assignments, "assignments is null");

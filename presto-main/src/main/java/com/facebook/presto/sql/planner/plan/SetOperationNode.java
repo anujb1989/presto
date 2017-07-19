@@ -52,7 +52,7 @@ public abstract class SetOperationNode
             @JsonProperty("outputToInputs") ListMultimap<Symbol, Symbol> outputToInputs,
             @JsonProperty("outputs") List<Symbol> outputs)
     {
-        super(id);
+        super();
 
         requireNonNull(sources, "sources is null");
         checkArgument(!sources.isEmpty(), "Must have at least one source");

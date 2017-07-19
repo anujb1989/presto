@@ -46,7 +46,7 @@ public class UnnestNode
             @JsonProperty("unnestSymbols") Map<Symbol, List<Symbol>> unnestSymbols,
             @JsonProperty("ordinalitySymbol") Optional<Symbol> ordinalitySymbol)
     {
-        super(id);
+        super();
         this.source = requireNonNull(source, "source is null");
         this.replicateSymbols = ImmutableList.copyOf(requireNonNull(replicateSymbols, "replicateSymbols is null"));
         checkArgument(source.getOutputSymbols().containsAll(replicateSymbols), "Source does not contain all replicateSymbols");

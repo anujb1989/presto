@@ -41,7 +41,7 @@ public class ProjectNode
             @JsonProperty("source") PlanNode source,
             @JsonProperty("assignments") Assignments assignments)
     {
-        super(id);
+        super();
 
         requireNonNull(source, "source is null");
         requireNonNull(assignments, "assignments is null");

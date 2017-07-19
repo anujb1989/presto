@@ -40,7 +40,7 @@ public class OutputNode
             @JsonProperty("columns") List<String> columnNames,
             @JsonProperty("outputs") List<Symbol> outputs)
     {
-        super(id);
+        super();
 
         requireNonNull(source, "source is null");
         requireNonNull(columnNames, "columnNames is null");

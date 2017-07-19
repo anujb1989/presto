@@ -57,7 +57,7 @@ public class TableWriterNode
             @JsonProperty("outputs") List<Symbol> outputs,
             @JsonProperty("partitioningScheme") Optional<PartitioningScheme> partitioningScheme)
     {
-        super(id);
+        super();
 
         requireNonNull(columns, "columns is null");
         requireNonNull(columnNames, "columnNames is null");

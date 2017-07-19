@@ -20,8 +20,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.List;
 
-import static java.util.Objects.requireNonNull;
-
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
@@ -64,18 +62,10 @@ import static java.util.Objects.requireNonNull;
 })
 public abstract class PlanNode
 {
-    private final PlanNodeId id;
-
-    protected PlanNode(PlanNodeId id)
-    {
-        requireNonNull(id, "id is null");
-        this.id = id;
-    }
-
     @JsonProperty("id")
     public PlanNodeId getId()
     {
-        return id;
+        return null;
     }
 
     public abstract List<PlanNode> getSources();

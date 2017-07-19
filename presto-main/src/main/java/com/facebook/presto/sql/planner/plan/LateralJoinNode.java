@@ -59,7 +59,7 @@ public class LateralJoinNode
             @JsonProperty("correlation") List<Symbol> correlation,
             @JsonProperty("type") Type type)
     {
-        super(id);
+        super();
         requireNonNull(input, "input is null");
         requireNonNull(subquery, "right is null");
         requireNonNull(correlation, "correlation is null");

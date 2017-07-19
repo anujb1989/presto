@@ -71,7 +71,7 @@ public class ExchangeNode
             @JsonProperty("sources") List<PlanNode> sources,
             @JsonProperty("inputs") List<List<Symbol>> inputs)
     {
-        super(id);
+        super();
 
         requireNonNull(type, "type is null");
         requireNonNull(scope, "scope is null");

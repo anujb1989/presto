@@ -55,7 +55,7 @@ public class TopNNode
             @JsonProperty("orderings") Map<Symbol, SortOrder> orderings,
             @JsonProperty("step") Step step)
     {
-        super(id);
+        super();
 
         requireNonNull(source, "source is null");
         checkArgument(count >= 0, "count must be positive");

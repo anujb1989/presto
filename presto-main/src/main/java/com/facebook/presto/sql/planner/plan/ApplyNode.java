@@ -70,7 +70,7 @@ public class ApplyNode
             @JsonProperty("subqueryAssignments") Assignments subqueryAssignments,
             @JsonProperty("correlation") List<Symbol> correlation)
     {
-        super(id);
+        super();
         requireNonNull(input, "input is null");
         requireNonNull(subquery, "right is null");
         requireNonNull(subqueryAssignments, "assignments is null");

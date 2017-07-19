@@ -68,7 +68,7 @@ public class JoinNode
             @JsonProperty("rightHashSymbol") Optional<Symbol> rightHashSymbol,
             @JsonProperty("distributionType") Optional<DistributionType> distributionType)
     {
-        super(id);
+        super();
         requireNonNull(type, "type is null");
         requireNonNull(left, "left is null");
         requireNonNull(right, "right is null");

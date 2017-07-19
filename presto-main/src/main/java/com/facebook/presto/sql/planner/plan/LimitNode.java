@@ -41,7 +41,7 @@ public class LimitNode
             @JsonProperty("count") long count,
             @JsonProperty("partial") boolean partial)
     {
-        super(id);
+        super();
         this.partial = partial;
 
         requireNonNull(source, "source is null");

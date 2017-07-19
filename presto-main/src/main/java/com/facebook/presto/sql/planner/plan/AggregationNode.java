@@ -117,7 +117,7 @@ public class AggregationNode
             @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol,
             @JsonProperty("groupIdSymbol") Optional<Symbol> groupIdSymbol)
     {
-        super(id);
+        super();
 
         this.source = source;
         this.aggregations = ImmutableMap.copyOf(requireNonNull(aggregations, "aggregations is null"));

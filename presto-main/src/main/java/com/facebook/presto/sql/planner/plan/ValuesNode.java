@@ -38,7 +38,7 @@ public class ValuesNode
             @JsonProperty("outputSymbols") List<Symbol> outputSymbols,
             @JsonProperty("rows") List<List<Expression>> rows)
     {
-        super(id);
+        super();
         this.outputSymbols = ImmutableList.copyOf(outputSymbols);
         this.rows = listOfListsCopy(rows);
 

@@ -60,7 +60,7 @@ public class WindowNode
             @JsonProperty("prePartitionedInputs") Set<Symbol> prePartitionedInputs,
             @JsonProperty("preSortedOrderPrefix") int preSortedOrderPrefix)
     {
-        super(id);
+        super();
 
         requireNonNull(source, "source is null");
         requireNonNull(specification, "specification is null");

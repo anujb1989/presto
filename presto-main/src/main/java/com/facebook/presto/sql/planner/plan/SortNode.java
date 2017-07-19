@@ -40,7 +40,7 @@ public class SortNode
             @JsonProperty("orderBy") List<Symbol> orderBy,
             @JsonProperty("orderings") Map<Symbol, SortOrder> orderings)
     {
-        super(id);
+        super();
 
         requireNonNull(source, "source is null");
         requireNonNull(orderBy, "orderBy is null");

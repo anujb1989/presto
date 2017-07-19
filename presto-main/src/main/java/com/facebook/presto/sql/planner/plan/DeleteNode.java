@@ -43,7 +43,7 @@ public class DeleteNode
             @JsonProperty("rowId") Symbol rowId,
             @JsonProperty("outputs") List<Symbol> outputs)
     {
-        super(id);
+        super();
 
         this.source = requireNonNull(source, "source is null");
         this.target = requireNonNull(target, "target is null");

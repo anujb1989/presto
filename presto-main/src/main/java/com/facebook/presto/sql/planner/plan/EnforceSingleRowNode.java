@@ -36,7 +36,7 @@ public class EnforceSingleRowNode
             @JsonProperty("id") PlanNodeId id,
             @JsonProperty("source") PlanNode source)
     {
-        super(id);
+        super();
 
         this.source = requireNonNull(source, "source is null");
     }

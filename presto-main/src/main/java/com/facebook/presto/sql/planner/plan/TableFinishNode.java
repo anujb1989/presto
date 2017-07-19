@@ -42,7 +42,7 @@ public class TableFinishNode
             @JsonProperty("target") WriterTarget target,
             @JsonProperty("outputs") List<Symbol> outputs)
     {
-        super(id);
+        super();
 
         checkArgument(target != null || source instanceof TableWriterNode);
         this.source = requireNonNull(source, "source is null");

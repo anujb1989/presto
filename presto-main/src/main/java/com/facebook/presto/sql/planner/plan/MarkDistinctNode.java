@@ -43,7 +43,7 @@ public class MarkDistinctNode
             @JsonProperty("distinctSymbols") List<Symbol> distinctSymbols,
             @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
     {
-        super(id);
+        super();
         this.source = source;
         this.markerSymbol = markerSymbol;
         this.hashSymbol = requireNonNull(hashSymbol, "hashSymbol is null");

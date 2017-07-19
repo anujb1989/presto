@@ -41,7 +41,7 @@ public class MetadataDeleteNode
             @JsonProperty("output") Symbol output,
             @JsonProperty("tableLayout") TableLayoutHandle tableLayout)
     {
-        super(id);
+        super();
 
         this.target = requireNonNull(target, "target is null");
         this.output = requireNonNull(output, "output is null");

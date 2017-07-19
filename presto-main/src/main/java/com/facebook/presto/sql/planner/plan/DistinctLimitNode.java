@@ -46,7 +46,7 @@ public class DistinctLimitNode
             @JsonProperty("distinctSymbols") List<Symbol> distinctSymbols,
             @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
     {
-        super(id);
+        super();
         this.source = requireNonNull(source, "source is null");
         checkArgument(limit >= 0, "limit must be greater than or equal to zero");
         this.limit = limit;

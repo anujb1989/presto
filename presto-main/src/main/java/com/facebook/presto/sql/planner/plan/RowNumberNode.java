@@ -46,7 +46,7 @@ public final class RowNumberNode
             @JsonProperty("maxRowCountPerPartition") Optional<Integer> maxRowCountPerPartition,
             @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
     {
-        super(id);
+        super();
 
         requireNonNull(source, "source is null");
         requireNonNull(partitionBy, "partitionBy is null");

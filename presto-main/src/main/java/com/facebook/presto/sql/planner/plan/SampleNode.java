@@ -60,7 +60,7 @@ public class SampleNode
             @JsonProperty("sampleRatio") double sampleRatio,
             @JsonProperty("sampleType") Type sampleType)
     {
-        super(id);
+        super();
 
         checkArgument(sampleRatio >= 0.0, "sample ratio must be greater than or equal to 0");
         checkArgument((sampleRatio <= 1.0), "sample ratio must be less than or equal to 1");

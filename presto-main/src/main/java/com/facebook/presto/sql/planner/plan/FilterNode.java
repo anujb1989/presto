@@ -36,7 +36,7 @@ public class FilterNode
             @JsonProperty("source") PlanNode source,
             @JsonProperty("predicate") Expression predicate)
     {
-        super(id);
+        super();
 
         this.source = source;
         this.predicate = predicate;

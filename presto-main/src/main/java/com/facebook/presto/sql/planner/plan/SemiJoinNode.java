@@ -50,7 +50,7 @@ public class SemiJoinNode
             @JsonProperty("filteringSourceHashSymbol") Optional<Symbol> filteringSourceHashSymbol,
             @JsonProperty("distributionType") Optional<DistributionType> distributionType)
     {
-        super(id);
+        super();
         this.source = requireNonNull(source, "source is null");
         this.filteringSource = requireNonNull(filteringSource, "filteringSource is null");
         this.sourceJoinSymbol = requireNonNull(sourceJoinSymbol, "sourceJoinSymbol is null");

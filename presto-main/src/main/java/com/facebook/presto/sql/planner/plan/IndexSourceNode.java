@@ -55,7 +55,7 @@ public class IndexSourceNode
             @JsonProperty("assignments") Map<Symbol, ColumnHandle> assignments,
             @JsonProperty("effectiveTupleDomain") TupleDomain<ColumnHandle> effectiveTupleDomain)
     {
-        super(id);
+        super();
         this.indexHandle = requireNonNull(indexHandle, "indexHandle is null");
         this.tableHandle = requireNonNull(tableHandle, "tableHandle is null");
         this.tableLayout = requireNonNull(tableLayout, "tableLayout is null");

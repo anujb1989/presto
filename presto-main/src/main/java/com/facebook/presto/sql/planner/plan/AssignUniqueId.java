@@ -36,7 +36,7 @@ public class AssignUniqueId
             @JsonProperty("source") PlanNode source,
             @JsonProperty("idColumn") Symbol unique)
     {
-        super(id);
+        super();
         this.source = requireNonNull(source, "source is null");
         this.idColumn = requireNonNull(unique, "idColumn is null");
     }
