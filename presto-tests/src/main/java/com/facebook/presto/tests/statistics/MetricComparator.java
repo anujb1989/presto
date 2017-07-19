@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.facebook.presto.execution.StageInfo.getAllStages;
-import static com.facebook.presto.sql.planner.optimizations.PlanNodeSearcher.searchFrom;
 import static com.facebook.presto.util.MoreMaps.mergeMaps;
 import static com.google.common.collect.Maps.transformValues;
 import static java.util.Arrays.asList;
@@ -43,23 +42,16 @@ public class MetricComparator
     public List<MetricComparison> getMetricComparisons(Plan queryPlan, StageInfo outputStageInfo)
     {
         return metrics.stream().flatMap(metric -> {
-            Map<PlanNodeId, PlanNodeCost> estimates = queryPlan.getPlanNodeCosts();
+            Map<PlanNode, PlanNodeCost> estimates = queryPlan.getPlanNodeCosts();
             Map<PlanNodeId, PlanNodeCost> actuals = extractActualCosts(outputStageInfo);
             return estimates.entrySet().stream().map(entry -> {
                 // todo refactor to stay in PlanNodeId domain ????
-                PlanNode node = planNodeForId(queryPlan, entry.getKey());
+                PlanNode node = entry.getKey();
                 PlanNodeCost estimate = entry.getValue();
                 Optional<PlanNodeCost> execution = Optional.ofNullable(actuals.get(node.getId()));
                 return createMetricComparison(metric, node, estimate, execution);
             });
         }).collect(Collectors.toList());
-    }
-
-    private PlanNode planNodeForId(Plan queryPlan, PlanNodeId id)
-    {
-        return searchFrom(queryPlan.getRoot())
-                .where(node -> node.getId().equals(id))
-                .findOnlyElement();
     }
 
     private Map<PlanNodeId, PlanNodeCost> extractActualCosts(StageInfo outputStageInfo)

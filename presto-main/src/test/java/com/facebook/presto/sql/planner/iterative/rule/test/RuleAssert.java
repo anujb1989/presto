@@ -134,7 +134,7 @@ public class RuleAssert
         }
 
         inTransaction(session -> {
-            Map<PlanNodeId, PlanNodeCost> planNodeCosts = costCalculator.calculateCostForPlan(session, types, actual);
+            Map<PlanNode, PlanNodeCost> planNodeCosts = costCalculator.calculateCostForPlan(session, types, actual);
             assertPlan(session, metadata, costCalculator, new Plan(actual, types, planNodeCosts), ruleApplication.lookup, pattern);
             return null;
         });

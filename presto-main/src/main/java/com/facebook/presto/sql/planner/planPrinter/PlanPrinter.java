@@ -153,7 +153,7 @@ public class PlanPrinter
         this.stats = Optional.empty();
         this.verbose = verbose;
 
-        Map<PlanNodeId, PlanNodeCost> costs = costCalculator.calculateCostForPlan(session, types, plan);
+        Map<PlanNode, PlanNodeCost> costs = costCalculator.calculateCostForPlan(session, types, plan);
         Visitor visitor = new Visitor(types, costs, session);
         plan.accept(visitor, indent);
     }
@@ -169,7 +169,7 @@ public class PlanPrinter
         this.stats = Optional.of(stats);
         this.verbose = verbose;
 
-        Map<PlanNodeId, PlanNodeCost> costs = costCalculator.calculateCostForPlan(session, types, plan);
+        Map<PlanNode, PlanNodeCost> costs = costCalculator.calculateCostForPlan(session, types, plan);
         Visitor visitor = new Visitor(types, costs, session);
         plan.accept(visitor, indent);
     }
@@ -512,11 +512,11 @@ public class PlanPrinter
             extends PlanVisitor<Void, Integer>
     {
         private final Map<Symbol, Type> types;
-        private final Map<PlanNodeId, PlanNodeCost> costs;
+        private final Map<PlanNode, PlanNodeCost> costs;
         private final Session session;
 
         @SuppressWarnings("AssignmentToCollectionOrArrayFieldFromParameter")
-        public Visitor(Map<Symbol, Type> types, Map<PlanNodeId, PlanNodeCost> costs, Session session)
+        public Visitor(Map<Symbol, Type> types, Map<PlanNode, PlanNodeCost> costs, Session session)
         {
             this.types = types;
             this.costs = costs;

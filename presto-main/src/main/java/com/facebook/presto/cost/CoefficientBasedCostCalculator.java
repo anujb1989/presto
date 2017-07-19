@@ -31,7 +31,6 @@ import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.LimitNode;
 import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
-import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
 import com.facebook.presto.sql.planner.plan.SemiJoinNode;
@@ -74,7 +73,7 @@ public class CoefficientBasedCostCalculator
     }
 
     @Override
-    public Map<PlanNodeId, PlanNodeCost> calculateCostForPlan(Session session, Map<Symbol, Type> types, PlanNode planNode)
+    public Map<PlanNode, PlanNodeCost> calculateCostForPlan(Session session, Map<Symbol, Type> types, PlanNode planNode)
     {
         Visitor visitor = new Visitor(session, types);
         planNode.accept(visitor, null);
@@ -85,7 +84,7 @@ public class CoefficientBasedCostCalculator
             extends PlanVisitor<PlanNodeCost, Void>
     {
         private final Session session;
-        private final Map<PlanNodeId, PlanNodeCost> costs;
+        private final Map<PlanNode, PlanNodeCost> costs;
         private final Map<Symbol, Type> types;
 
         public Visitor(Session session, Map<Symbol, Type> types)
@@ -95,7 +94,7 @@ public class CoefficientBasedCostCalculator
             this.types = ImmutableMap.copyOf(types);
         }
 
-        public Map<PlanNodeId, PlanNodeCost> getCosts()
+        public Map<PlanNode, PlanNodeCost> getCosts()
         {
             return ImmutableMap.copyOf(costs);
         }
@@ -104,7 +103,7 @@ public class CoefficientBasedCostCalculator
         protected PlanNodeCost visitPlan(PlanNode node, Void context)
         {
             visitSources(node);
-            costs.put(node.getId(), UNKNOWN_COST);
+            costs.put(node, UNKNOWN_COST);
             return UNKNOWN_COST;
         }
 
@@ -128,7 +127,7 @@ public class CoefficientBasedCostCalculator
             final double filterCoefficient = FILTER_COEFFICIENT;
             PlanNodeCost filterCost = sourceCost
                     .mapOutputRowCount(value -> value * filterCoefficient);
-            costs.put(node.getId(), filterCost);
+            costs.put(node, filterCost);
             return filterCost;
         }
 
@@ -151,7 +150,7 @@ public class CoefficientBasedCostCalculator
                 joinCost.setOutputRowCount(new Estimate(rowCount));
             }
 
-            costs.put(node.getId(), joinCost.build());
+            costs.put(node, joinCost.build());
             return joinCost.build();
         }
 
@@ -172,7 +171,7 @@ public class CoefficientBasedCostCalculator
             PlanNodeCost exchangeCost = PlanNodeCost.builder()
                     .setOutputRowCount(rowCount)
                     .build();
-            costs.put(node.getId(), exchangeCost);
+            costs.put(node, exchangeCost);
             return exchangeCost;
         }
 
@@ -191,7 +190,7 @@ public class CoefficientBasedCostCalculator
                     .setOutputRowCount(tableStatistics.getRowCount())
                     .build();
 
-            costs.put(node.getId(), tableScanCost);
+            costs.put(node, tableScanCost);
             return tableScanCost;
         }
 
@@ -217,7 +216,7 @@ public class CoefficientBasedCostCalculator
             PlanNodeCost valuesCost = PlanNodeCost.builder()
                     .setOutputRowCount(valuesCount)
                     .build();
-            costs.put(node.getId(), valuesCost);
+            costs.put(node, valuesCost);
             return valuesCost;
         }
 
@@ -228,7 +227,7 @@ public class CoefficientBasedCostCalculator
             PlanNodeCost nodeCost = PlanNodeCost.builder()
                     .setOutputRowCount(new Estimate(1.0))
                     .build();
-            costs.put(node.getId(), nodeCost);
+            costs.put(node, nodeCost);
             return nodeCost;
         }
 
@@ -236,9 +235,9 @@ public class CoefficientBasedCostCalculator
         public PlanNodeCost visitSemiJoin(SemiJoinNode node, Void context)
         {
             visitSources(node);
-            PlanNodeCost sourceStatitics = costs.get(node.getSource().getId());
+            PlanNodeCost sourceStatitics = costs.get(node.getSource());
             PlanNodeCost semiJoinCost = sourceStatitics.mapOutputRowCount(rowCount -> rowCount * JOIN_MATCHING_COEFFICIENT);
-            costs.put(node.getId(), semiJoinCost);
+            costs.put(node, semiJoinCost);
             return semiJoinCost;
         }
 
@@ -253,14 +252,14 @@ public class CoefficientBasedCostCalculator
             else {
                 limitCost.setOutputRowCount(new Estimate(node.getCount()));
             }
-            costs.put(node.getId(), limitCost.build());
+            costs.put(node, limitCost.build());
             return limitCost.build();
         }
 
         private PlanNodeCost copySourceCost(PlanNode node)
         {
             PlanNodeCost sourceCost = visitSource(node);
-            costs.put(node.getId(), sourceCost);
+            costs.put(node, sourceCost);
             return sourceCost;
         }
 

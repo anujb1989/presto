@@ -139,7 +139,7 @@ public class LogicalPlanner
             PlanSanityChecker.validateFinalPlan(root, session, metadata, sqlParser, symbolAllocator.getTypes());
         }
 
-        Map<PlanNodeId, PlanNodeCost> planNodeCosts = costCalculator.calculateCostForPlan(session, symbolAllocator.getTypes(), root);
+        Map<PlanNode, PlanNodeCost> planNodeCosts = costCalculator.calculateCostForPlan(session, symbolAllocator.getTypes(), root);
 
         return new Plan(root, symbolAllocator.getTypes(), planNodeCosts);
     }
