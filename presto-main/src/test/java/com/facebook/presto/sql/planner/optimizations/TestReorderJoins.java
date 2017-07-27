@@ -15,16 +15,18 @@
 package com.facebook.presto.sql.planner.optimizations;
 
 import com.facebook.presto.SystemSessionProperties;
+import com.facebook.presto.sql.planner.Plan;
+import com.facebook.presto.sql.planner.SimplePlanVisitor;
 import com.facebook.presto.sql.planner.assertions.BasePlanTest;
 import com.facebook.presto.sql.planner.assertions.PlanMatchPattern;
+import com.facebook.presto.sql.planner.plan.JoinNode;
+import com.facebook.presto.sql.planner.plan.TableScanNode;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import org.testng.annotations.Test;
 
-import static com.facebook.presto.sql.planner.assertions.PlanMatchPattern.anyTree;
-import static com.facebook.presto.sql.planner.assertions.PlanMatchPattern.equiJoinClause;
-import static com.facebook.presto.sql.planner.assertions.PlanMatchPattern.join;
 import static com.facebook.presto.sql.planner.assertions.PlanMatchPattern.tableScan;
-import static com.facebook.presto.sql.planner.plan.JoinNode.Type.INNER;
+import static org.testng.Assert.assertEquals;
 
 public class TestReorderJoins
         extends BasePlanTest
@@ -44,31 +46,74 @@ public class TestReorderJoins
     public void testPartialTpchQ2JoinOrder()
     {
         // it looks like the join ordering here is optimal
-        assertPlan(
+        assertJoinOrder(
                 "SELECT * " +
                         "FROM part p, supplier s, partsupp ps, nation n, region r " +
                         "WHERE p.size = 15 AND p.type like '%BRASS' AND s.suppkey = ps.suppkey AND p.partkey = ps.partkey " +
                         "AND s.nationkey = n.nationkey AND n.regionkey = r.regionkey AND r.name = 'EUROPE'",
-                anyTree(
-                        join(
-                                INNER,
-                                equiJoinClause("PS_SUPPKEY", "S_SUPPKEY"),
-                                anyTree(
-                                        join(
-                                                INNER,
-                                                equiJoinClause("PS_PARTKEY", "P_PARTKEY"),
-                                                anyTree(PARTSUPP_TABLESCAN),
-                                                anyTree(PART_TABLESCAN))),
-                                anyTree(
-                                        join(
-                                                INNER,
-                                                equiJoinClause("S_NATIONKEY", "N_NATIONKEY"),
-                                                anyTree(SUPPLIER_TABLESCAN),
-                                                anyTree(
-                                                        join(
-                                                                INNER,
-                                                                equiJoinClause("N_REGIONKEY", "R_REGIONKEY"),
-                                                                anyTree(NATION_TABLESCAN),
-                                                                anyTree(REGION_TABLESCAN))))))));
+                "" +
+                        "join (INNER, PARTITIONED):\n" +
+                        "    join (INNER, PARTITIONED):\n" +
+                        "        tpch:partsupp:sf0.01\n" +
+                        "        tpch:part:sf0.01\n" +
+                        "    join (INNER, PARTITIONED):\n" +
+                        "        tpch:supplier:sf0.01\n" +
+                        "        join (INNER, PARTITIONED):\n" +
+                        "            tpch:nation:sf0.01\n" +
+                        "            tpch:region:sf0.01");
+    }
+
+    private void assertJoinOrder(String sql, String expectedJoinOrder)
+    {
+        assertEquals(joinOrderString(sql), expectedJoinOrder);
+    }
+
+    private String joinOrderString(String sql)
+    {
+        Plan plan = plan(sql);
+        JoinOrderPrinter joinOrderPrinter = new JoinOrderPrinter();
+        plan.getRoot().accept(joinOrderPrinter, 0);
+        return joinOrderPrinter.result();
+    }
+
+    private static class JoinOrderPrinter
+            extends SimplePlanVisitor<Integer>
+    {
+        private static final StringBuilder stringBuilder = new StringBuilder();
+
+        public String result()
+        {
+            return stringBuilder.toString();
+        }
+
+        @Override
+        public Void visitJoin(JoinNode node, Integer indent)
+        {
+            stringBuilder.append(indentString(indent))
+                    .append("join (")
+                    .append(node.getType())
+                    .append(", ")
+                    .append(node.getDistributionType().map(JoinNode.DistributionType::toString).orElse("unknown"))
+                    .append("):\n");
+
+            super.visitPlan(node.getLeft(), indent + 1);
+            super.visitPlan(node.getRight(), indent + 1);
+
+            return null;
+        }
+
+        @Override
+        public Void visitTableScan(TableScanNode node, Integer indent)
+        {
+            stringBuilder.append(indentString(indent))
+                    .append(node.getTable().getConnectorHandle().toString())
+                    .append("\n");
+            return null;
+        }
+
+        private static String indentString(int indent)
+        {
+            return Strings.repeat("    ", indent);
+        }
     }
 }
