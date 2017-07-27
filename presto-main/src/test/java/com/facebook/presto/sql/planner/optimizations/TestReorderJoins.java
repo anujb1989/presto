@@ -33,7 +33,9 @@ public class TestReorderJoins
 {
     public TestReorderJoins()
     {
-        super(ImmutableMap.of(SystemSessionProperties.JOIN_REORDERING_STRATEGY, "COST_BASED"));
+        super(ImmutableMap.of(
+                SystemSessionProperties.JOIN_REORDERING_STRATEGY, "COST_BASED",
+                SystemSessionProperties.JOIN_DISTRIBUTION_TYPE, "AUTOMATIC"));
     }
 
     @Override
