@@ -14,32 +14,32 @@
 
 package com.facebook.presto.sql.planner.optimizations;
 
+import com.facebook.presto.Session;
 import com.facebook.presto.SystemSessionProperties;
 import com.facebook.presto.sql.planner.Plan;
 import com.facebook.presto.sql.planner.SimplePlanVisitor;
 import com.facebook.presto.sql.planner.assertions.BasePlanTest;
-import com.facebook.presto.sql.planner.assertions.PlanMatchPattern;
 import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
+import com.facebook.presto.testing.LocalQueryRunner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import org.testng.annotations.Test;
 
-import static com.facebook.presto.sql.planner.assertions.PlanMatchPattern.tableScan;
 import static org.testng.Assert.assertEquals;
 
 public class TestReorderJoins
         extends BasePlanTest
 {
-    private static final PlanMatchPattern SUPPLIER_TABLESCAN = tableScan("supplier", ImmutableMap.of("S_SUPPKEY", "suppkey", "S_NATIONKEY", "nationkey"));
-    private static final PlanMatchPattern PART_TABLESCAN = tableScan("part", ImmutableMap.of("P_PARTKEY", "partkey"));
-    private static final PlanMatchPattern PARTSUPP_TABLESCAN = tableScan("partsupp", ImmutableMap.of("PS_PARTKEY", "partkey", "PS_SUPPKEY", "suppkey"));
-    private static final PlanMatchPattern NATION_TABLESCAN = tableScan("nation", ImmutableMap.of("N_NATIONKEY", "nationkey", "N_REGIONKEY", "regionkey"));
-    private static final PlanMatchPattern REGION_TABLESCAN = tableScan("region", ImmutableMap.of("R_REGIONKEY", "regionkey"));
-
     public TestReorderJoins()
     {
         super(ImmutableMap.of(SystemSessionProperties.JOIN_REORDERING_STRATEGY, "COST_BASED"));
+    }
+
+    @Override
+    protected LocalQueryRunner createQueryRunner(Session session)
+    {
+        return LocalQueryRunner.queryRunnerWithFakeNodeCountForStats(session, 8);
     }
 
     @Test
