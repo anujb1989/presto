@@ -247,7 +247,7 @@ public class FilterStatsCalculator
 
             if (left instanceof SymbolReference && right instanceof Literal) {
                 Symbol symbol = Symbol.from(left);
-                OptionalDouble literal = doubleValueFromLiteral(types.get(symbol), (Literal) right);
+                double literal = doubleValueFromLiteral(types.get(symbol), (Literal) right);
                 return comparisonSymbolToLiteralStats(input, symbol, literal, type);
             }
 
