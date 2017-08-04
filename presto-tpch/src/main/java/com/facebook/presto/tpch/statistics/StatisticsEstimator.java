@@ -92,20 +92,12 @@ public class StatisticsEstimator
         if (UNSUPPORTED_COLUMNS.contains(column)) {
             return ColumnStatisticsData.empty();
         }
-        else {
-            return rescale(big, small, scaleFactor);
-        }
-    }
-
-    private ColumnStatisticsData rescale(ColumnStatisticsData big, ColumnStatisticsData small, double scaleFactor)
-    {
-        if (columnDoesNotScale(big, small)) {
+        else if (columnDoesNotScale(big, small)) {
             return new ColumnStatisticsData(
                     big.getDistinctValuesCount(),
                     big.getNullsCount(),
                     checkPresent(withBoth(big.getMin(), small.getMin(), this::checkClose)),
-                    checkPresent(withBoth(big.getMax(), small.getMax(), this::checkClose))
-            );
+                    checkPresent(withBoth(big.getMax(), small.getMax(), this::checkClose)));
         }
         else {
             Function<Number, Double> rescale = value -> value.doubleValue() * scaleFactor;
