@@ -48,7 +48,6 @@ import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.function.Function;
 
 import static com.facebook.presto.hive.BackgroundHiveSplitLoader.BucketSplitInfo.createBucketSplitInfo;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_METADATA;
@@ -76,7 +75,7 @@ public class HiveSplitManager
     public static final String PRESTO_OFFLINE = "presto_offline";
     public static final String OBJECT_NOT_READABLE = "object_not_readable";
 
-    private final Function<HiveTransactionHandle, SemiTransactionalHiveMetastore> metastoreProvider;
+    private final Transactional<SemiTransactionalHiveMetastore> metastoreProvider;
     private final NamenodeStats namenodeStats;
     private final HdfsEnvironment hdfsEnvironment;
     private final DirectoryLister directoryLister;
@@ -94,7 +93,7 @@ public class HiveSplitManager
     @Inject
     public HiveSplitManager(
             HiveClientConfig hiveClientConfig,
-            Function<HiveTransactionHandle, SemiTransactionalHiveMetastore> metastoreProvider,
+            Transactional<SemiTransactionalHiveMetastore> metastoreProvider,
             NamenodeStats namenodeStats,
             HdfsEnvironment hdfsEnvironment,
             DirectoryLister directoryLister,
@@ -119,7 +118,7 @@ public class HiveSplitManager
     }
 
     public HiveSplitManager(
-            Function<HiveTransactionHandle, SemiTransactionalHiveMetastore> metastoreProvider,
+            Transactional<SemiTransactionalHiveMetastore> metastoreProvider,
             NamenodeStats namenodeStats,
             HdfsEnvironment hdfsEnvironment,
             DirectoryLister directoryLister,
@@ -158,7 +157,7 @@ public class HiveSplitManager
         SchemaTableName tableName = layout.getSchemaTableName();
 
         // get table metadata
-        SemiTransactionalHiveMetastore metastore = metastoreProvider.apply((HiveTransactionHandle) transaction);
+        SemiTransactionalHiveMetastore metastore = metastoreProvider.get(transaction);
         Table table = metastore.getTable(tableName.getSchemaName(), tableName.getTableName())
                 .orElseThrow(() -> new TableNotFoundException(tableName));
 

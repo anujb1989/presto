@@ -14,36 +14,31 @@
 package com.facebook.presto.hive;
 
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
-import com.google.common.collect.ImmutableSet;
 
 import javax.inject.Inject;
 
-import java.util.Set;
+import java.util.function.Supplier;
 
-import static java.util.Objects.requireNonNull;
-
-public class HiveTransactionManager
+public class HiveMetadataTransactionState
+        extends TransactionState<TransactionalMetadata>
 {
-    private final Set<TransactionListener> listeners;
-
     @Inject
-    public HiveTransactionManager(Set<TransactionListener> listeners)
+    public HiveMetadataTransactionState(Supplier<TransactionalMetadata> metadataFactory)
     {
-        this.listeners = ImmutableSet.copyOf(requireNonNull(listeners, "listeners is null"));
+        super(metadataFactory::get);
     }
 
-    public void begin(ConnectorTransactionHandle transactionHandle)
-    {
-        listeners.forEach(listener -> listener.begin(transactionHandle));
-    }
-
+    @Override
     public void commit(ConnectorTransactionHandle transactionHandle)
     {
-        listeners.forEach(listener -> listener.commit(transactionHandle));
+        get(transactionHandle).commit();
+        super.commit(transactionHandle);
     }
 
+    @Override
     public void rollback(ConnectorTransactionHandle transactionHandle)
     {
-        listeners.forEach(listener -> listener.rollback(transactionHandle));
+        get(transactionHandle).rollback();
+        super.rollback(transactionHandle);
     }
 }

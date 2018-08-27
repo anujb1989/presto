@@ -34,11 +34,9 @@ import io.airlift.log.Logger;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import static com.facebook.presto.spi.transaction.IsolationLevel.READ_UNCOMMITTED;
 import static com.facebook.presto.spi.transaction.IsolationLevel.checkConnectorSupports;
-import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 public class HiveConnector
@@ -47,7 +45,6 @@ public class HiveConnector
     private static final Logger log = Logger.get(HiveConnector.class);
 
     private final LifeCycleManager lifeCycleManager;
-    private final Supplier<TransactionalMetadata> metadataFactory;
     private final ConnectorSplitManager splitManager;
     private final ConnectorPageSourceProvider pageSourceProvider;
     private final ConnectorPageSinkProvider pageSinkProvider;
@@ -60,11 +57,12 @@ public class HiveConnector
     private final ConnectorAccessControl accessControl;
     private final ClassLoader classLoader;
 
+    private final Transactional<TransactionalMetadata> metadata;
     private final HiveTransactionManager transactionManager;
 
     public HiveConnector(
             LifeCycleManager lifeCycleManager,
-            Supplier<TransactionalMetadata> metadataFactory,
+            Transactional<TransactionalMetadata> metadata,
             HiveTransactionManager transactionManager,
             ConnectorSplitManager splitManager,
             ConnectorPageSourceProvider pageSourceProvider,
@@ -79,7 +77,7 @@ public class HiveConnector
             ClassLoader classLoader)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
-        this.metadataFactory = requireNonNull(metadataFactory, "metadata is null");
+        this.metadata = requireNonNull(metadata, "metadata is null");
         this.transactionManager = requireNonNull(transactionManager, "transactionManager is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
         this.pageSourceProvider = requireNonNull(pageSourceProvider, "pageSourceProvider is null");
@@ -97,9 +95,7 @@ public class HiveConnector
     @Override
     public ConnectorMetadata getMetadata(ConnectorTransactionHandle transaction)
     {
-        ConnectorMetadata metadata = transactionManager.get(transaction);
-        checkArgument(metadata != null, "no such transaction: %s", transaction);
-        return new ClassLoaderSafeConnectorMetadata(metadata, classLoader);
+        return new ClassLoaderSafeConnectorMetadata(metadata.get(transaction), classLoader);
     }
 
     @Override
@@ -174,7 +170,7 @@ public class HiveConnector
         checkConnectorSupports(READ_UNCOMMITTED, isolationLevel);
         ConnectorTransactionHandle transaction = new HiveTransactionHandle();
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
-            transactionManager.put(transaction, metadataFactory.get());
+            transactionManager.begin(transaction);
         }
         return transaction;
     }
@@ -182,20 +178,16 @@ public class HiveConnector
     @Override
     public void commit(ConnectorTransactionHandle transaction)
     {
-        TransactionalMetadata metadata = transactionManager.remove(transaction);
-        checkArgument(metadata != null, "no such transaction: %s", transaction);
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
-            metadata.commit();
+            transactionManager.commit(transaction);
         }
     }
 
     @Override
     public void rollback(ConnectorTransactionHandle transaction)
     {
-        TransactionalMetadata metadata = transactionManager.remove(transaction);
-        checkArgument(metadata != null, "no such transaction: %s", transaction);
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
-            metadata.rollback();
+            transactionManager.rollback(transaction);
         }
     }
 

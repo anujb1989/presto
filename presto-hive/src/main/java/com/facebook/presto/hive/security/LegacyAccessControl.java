@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.hive.security;
 
-import com.facebook.presto.hive.HiveTransactionHandle;
+import com.facebook.presto.hive.Transactional;
 import com.facebook.presto.hive.metastore.SemiTransactionalHiveMetastore;
 import com.facebook.presto.hive.metastore.Table;
 import com.facebook.presto.spi.SchemaTableName;
@@ -26,7 +26,6 @@ import javax.inject.Inject;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 
 import static com.facebook.presto.spi.security.AccessDeniedException.denyAddColumn;
 import static com.facebook.presto.spi.security.AccessDeniedException.denyDropColumn;
@@ -38,7 +37,7 @@ import static java.util.Objects.requireNonNull;
 public class LegacyAccessControl
         implements ConnectorAccessControl
 {
-    private final Function<HiveTransactionHandle, SemiTransactionalHiveMetastore> metastoreProvider;
+    private final Transactional<SemiTransactionalHiveMetastore> metastoreProvider;
     private final boolean allowDropTable;
     private final boolean allowRenameTable;
     private final boolean allowAddColumn;
@@ -47,7 +46,7 @@ public class LegacyAccessControl
 
     @Inject
     public LegacyAccessControl(
-            Function<HiveTransactionHandle, SemiTransactionalHiveMetastore> metastoreProvider,
+            Transactional<SemiTransactionalHiveMetastore> metastoreProvider,
             LegacySecurityConfig securityConfig)
     {
         this.metastoreProvider = requireNonNull(metastoreProvider, "metastoreProvider is null");
@@ -98,7 +97,7 @@ public class LegacyAccessControl
             denyDropTable(tableName.toString());
         }
 
-        Optional<Table> target = metastoreProvider.apply(((HiveTransactionHandle) transaction)).getTable(tableName.getSchemaName(), tableName.getTableName());
+        Optional<Table> target = metastoreProvider.get(transaction).getTable(tableName.getSchemaName(), tableName.getTableName());
 
         if (!target.isPresent()) {
             denyDropTable(tableName.toString(), "Table not found");

@@ -114,7 +114,7 @@ public abstract class AbstractTestHiveFileSystem
     protected LocationService locationService;
     protected TestingHiveMetastore metastoreClient;
     protected HiveMetadataFactory metadataFactory;
-    protected HiveTransactionManager transactionManager;
+    protected HiveMetadataTransactionState hiveMetadataTransactionState;
     protected ConnectorSplitManager splitManager;
     protected ConnectorPageSinkProvider pageSinkProvider;
     protected ConnectorPageSourceProvider pageSourceProvider;
@@ -179,9 +179,9 @@ public abstract class AbstractTestHiveFileSystem
                 partitionUpdateCodec,
                 new HiveTypeTranslator(),
                 new NodeVersion("test_version"));
-        transactionManager = new HiveTransactionManager();
+        hiveMetadataTransactionState = new HiveMetadataTransactionState(metadataFactory);
         splitManager = new HiveSplitManager(
-                transactionHandle -> ((HiveMetadata) transactionManager.get(transactionHandle)).getMetastore(),
+                transactionHandle -> hiveMetadataTransactionState.get(transactionHandle).getMetastore(),
                 new NamenodeStats(),
                 hdfsEnvironment,
                 new HadoopDirectoryLister(),
@@ -219,7 +219,7 @@ public abstract class AbstractTestHiveFileSystem
 
     protected Transaction newTransaction()
     {
-        return new HiveTransaction(transactionManager, metadataFactory.get());
+        return new HiveTransaction(hiveMetadataTransactionState);
     }
 
     @Test

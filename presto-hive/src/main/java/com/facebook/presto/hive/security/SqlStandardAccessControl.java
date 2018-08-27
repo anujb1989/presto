@@ -14,7 +14,7 @@
 package com.facebook.presto.hive.security;
 
 import com.facebook.presto.hive.HiveConnectorId;
-import com.facebook.presto.hive.HiveTransactionHandle;
+import com.facebook.presto.hive.Transactional;
 import com.facebook.presto.hive.metastore.HivePrivilegeInfo;
 import com.facebook.presto.hive.metastore.SemiTransactionalHiveMetastore;
 import com.facebook.presto.spi.SchemaTableName;
@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableSet;
 import javax.inject.Inject;
 
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.facebook.presto.hive.metastore.HivePrivilegeInfo.HivePrivilege;
@@ -63,12 +62,12 @@ public class SqlStandardAccessControl
     private static final String INFORMATION_SCHEMA_NAME = "information_schema";
 
     private final String connectorId;
-    private final Function<HiveTransactionHandle, SemiTransactionalHiveMetastore> metastoreProvider;
+    private final Transactional<SemiTransactionalHiveMetastore> metastoreProvider;
 
     @Inject
     public SqlStandardAccessControl(
             HiveConnectorId connectorId,
-            Function<HiveTransactionHandle, SemiTransactionalHiveMetastore> metastoreProvider)
+            Transactional<SemiTransactionalHiveMetastore> metastoreProvider)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null").toString();
         this.metastoreProvider = requireNonNull(metastoreProvider, "metastoreProvider is null");
@@ -257,7 +256,7 @@ public class SqlStandardAccessControl
 
     private boolean checkDatabasePermission(ConnectorTransactionHandle transaction, Identity identity, String schemaName, HivePrivilege... requiredPrivileges)
     {
-        SemiTransactionalHiveMetastore metastore = metastoreProvider.apply(((HiveTransactionHandle) transaction));
+        SemiTransactionalHiveMetastore metastore = metastoreProvider.get(transaction);
         Set<HivePrivilege> privilegeSet = metastore.getDatabasePrivileges(identity.getUser(), schemaName).stream()
                 .map(HivePrivilegeInfo::getHivePrivilege)
                 .collect(Collectors.toSet());
@@ -272,7 +271,7 @@ public class SqlStandardAccessControl
 
     private boolean getGrantOptionForPrivilege(ConnectorTransactionHandle transaction, Identity identity, Privilege privilege, SchemaTableName tableName)
     {
-        SemiTransactionalHiveMetastore metastore = metastoreProvider.apply(((HiveTransactionHandle) transaction));
+        SemiTransactionalHiveMetastore metastore = metastoreProvider.get(transaction);
         return metastore.getTablePrivileges(identity.getUser(), tableName.getSchemaName(), tableName.getTableName())
                 .contains(new HivePrivilegeInfo(toHivePrivilege(privilege), true));
     }
@@ -283,7 +282,7 @@ public class SqlStandardAccessControl
             return true;
         }
 
-        SemiTransactionalHiveMetastore metastore = metastoreProvider.apply(((HiveTransactionHandle) transaction));
+        SemiTransactionalHiveMetastore metastore = metastoreProvider.get(transaction);
         Set<HivePrivilege> privilegeSet = metastore.getTablePrivileges(identity.getUser(), tableName.getSchemaName(), tableName.getTableName()).stream()
                 .map(HivePrivilegeInfo::getHivePrivilege)
                 .collect(Collectors.toSet());
@@ -292,7 +291,7 @@ public class SqlStandardAccessControl
 
     private boolean isAdmin(ConnectorTransactionHandle transaction, Identity identity)
     {
-        SemiTransactionalHiveMetastore metastore = metastoreProvider.apply(((HiveTransactionHandle) transaction));
+        SemiTransactionalHiveMetastore metastore = metastoreProvider.get(transaction);
         return metastore.getRoles(identity.getUser()).contains(ADMIN_ROLE_NAME);
     }
 }

@@ -576,7 +576,7 @@ public abstract class AbstractTestHiveClient
     protected LocationService locationService;
 
     protected HiveMetadataFactory metadataFactory;
-    protected HiveTransactionManager transactionManager;
+    protected HiveMetadataTransactionState hiveMetadataTransactionState;
     protected ExtendedHiveMetastore metastoreClient;
     protected ConnectorSplitManager splitManager;
     protected ConnectorPageSourceProvider pageSourceProvider;
@@ -748,9 +748,9 @@ public abstract class AbstractTestHiveClient
                 newFixedThreadPool(2),
                 new HiveTypeTranslator(),
                 TEST_SERVER_VERSION);
-        transactionManager = new HiveTransactionManager();
+        hiveMetadataTransactionState = new HiveMetadataTransactionState(metadataFactory);
         splitManager = new HiveSplitManager(
-                transactionHandle -> ((HiveMetadata) transactionManager.get(transactionHandle)).getMetastore(),
+                transactionHandle -> hiveMetadataTransactionState.get(transactionHandle).getMetastore(),
                 new NamenodeStats(),
                 hdfsEnvironment,
                 new HadoopDirectoryLister(),
@@ -798,7 +798,7 @@ public abstract class AbstractTestHiveClient
 
     protected Transaction newTransaction()
     {
-        return new HiveTransaction(transactionManager, metadataFactory.get());
+        return new HiveTransaction(hiveMetadataTransactionState);
     }
 
     interface Transaction
@@ -821,22 +821,22 @@ public abstract class AbstractTestHiveClient
     static class HiveTransaction
             implements Transaction
     {
-        private final HiveTransactionManager transactionManager;
+        private final HiveMetadataTransactionState hiveMetadataTransactionState;
         private final ConnectorTransactionHandle transactionHandle;
         private boolean closed;
 
-        public HiveTransaction(HiveTransactionManager transactionManager, HiveMetadata hiveMetadata)
+        public HiveTransaction(HiveMetadataTransactionState hiveMetadataTransactionState)
         {
-            this.transactionManager = requireNonNull(transactionManager, "transactionManager is null");
+            this.hiveMetadataTransactionState = requireNonNull(hiveMetadataTransactionState, "hiveMetadataTransactionState is null");
             this.transactionHandle = new HiveTransactionHandle();
-            transactionManager.put(transactionHandle, hiveMetadata);
+            hiveMetadataTransactionState.begin(transactionHandle);
             getMetastore().testOnlyThrowOnCleanupFailures();
         }
 
         @Override
         public ConnectorMetadata getMetadata()
         {
-            return transactionManager.get(transactionHandle);
+            return hiveMetadataTransactionState.get(transactionHandle);
         }
 
         @Override
@@ -847,7 +847,7 @@ public abstract class AbstractTestHiveClient
 
         private SemiTransactionalHiveMetastore getMetastore()
         {
-            return ((HiveMetadata) transactionManager.get(transactionHandle)).getMetastore();
+            return hiveMetadataTransactionState.get(transactionHandle).getMetastore();
         }
 
         @Override
@@ -861,9 +861,7 @@ public abstract class AbstractTestHiveClient
         {
             checkState(!closed);
             closed = true;
-            HiveMetadata metadata = (HiveMetadata) transactionManager.remove(transactionHandle);
-            checkArgument(metadata != null, "no such transaction: %s", transactionHandle);
-            metadata.commit();
+            hiveMetadataTransactionState.commit(transactionHandle);
         }
 
         @Override
@@ -871,9 +869,7 @@ public abstract class AbstractTestHiveClient
         {
             checkState(!closed);
             closed = true;
-            HiveMetadata metadata = (HiveMetadata) transactionManager.remove(transactionHandle);
-            checkArgument(metadata != null, "no such transaction: %s", transactionHandle);
-            metadata.rollback();
+            hiveMetadataTransactionState.rollback(transactionHandle);
         }
 
         @Override

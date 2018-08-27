@@ -34,7 +34,6 @@ import io.airlift.event.client.EventClient;
 import javax.inject.Singleton;
 
 import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
@@ -90,6 +89,7 @@ public class HiveClientModule
         binder.bind(new TypeLiteral<Supplier<TransactionalMetadata>>() {}).to(HiveMetadataFactory.class).in(Scopes.SINGLETON);
         binder.bind(HiveTransactionManager.class).in(Scopes.SINGLETON);
         binder.bind(ConnectorSplitManager.class).to(HiveSplitManager.class).in(Scopes.SINGLETON);
+        bindTransactionState(binder, HiveMetadataTransactionState.class, new TypeLiteral<Transactional<TransactionalMetadata>>() {});
         newExporter(binder).export(ConnectorSplitManager.class).as(generatedNameOf(HiveSplitManager.class, connectorId));
         binder.bind(ConnectorPageSourceProvider.class).to(HivePageSourceProvider.class).in(Scopes.SINGLETON);
         binder.bind(ConnectorPageSinkProvider.class).to(HivePageSinkProvider.class).in(Scopes.SINGLETON);
@@ -114,6 +114,13 @@ public class HiveClientModule
         fileWriterFactoryBinder.addBinding().to(RcFileFileWriterFactory.class).in(Scopes.SINGLETON);
     }
 
+    public static <T extends TransactionState> void bindTransactionState(Binder binder, Class<T> transactionStateClass, TypeLiteral<? super T> transactionalTypeLiteral)
+    {
+        binder.bind(transactionStateClass).in(Scopes.SINGLETON);
+        binder.bind(transactionalTypeLiteral).to(transactionStateClass);
+        newSetBinder(binder, TransactionListener.class).addBinding().to(transactionStateClass);
+    }
+
     @ForHiveClient
     @Singleton
     @Provides
@@ -134,8 +141,8 @@ public class HiveClientModule
 
     @Singleton
     @Provides
-    public Function<HiveTransactionHandle, SemiTransactionalHiveMetastore> createMetastoreGetter(HiveTransactionManager transactionManager)
+    public Transactional<SemiTransactionalHiveMetastore> createMetastoreGetter(Transactional<TransactionalMetadata> hiveMetadataTransactional)
     {
-        return transactionHandle -> ((HiveMetadata) transactionManager.get(transactionHandle)).getMetastore();
+        return transactionHandle -> ((HiveMetadata) hiveMetadataTransactional.get(transactionHandle)).getMetastore();
     }
 }
