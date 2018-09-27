@@ -61,7 +61,7 @@ public class ImpersonationTests
         QueryExecutor.query(format("GRANT SELECT ON NATION TO %s", aliceJdbcUser));
     }
 
-    @Test(groups = {HDFS_NO_IMPERSONATION, PROFILE_SPECIFIC_TESTS})
+    @Test(groups = {HDFS_NO_IMPERSONATION})
     public void testHdfsImpersonationDisabled()
     {
         String tableName = "check_hdfs_impersonation_disabled";
